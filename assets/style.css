@@ -38,35 +38,39 @@ p{margin:0 0 1em;}
 ul{margin:0 0 1em;padding-left:1.2em;}
 
 /* ---------- Header ---------- */
+/* El isologo oficial del LCG tiene el texto en blanco (pensado para
+   fondo oscuro), por eso el header usa un fondo oscuro en vez de
+   blanco: en blanco el nombre del laboratorio quedaba invisible. */
 .site-header{
-  border-bottom:1px solid var(--border);
-  position:sticky;top:0;background:rgba(255,255,255,.95);backdrop-filter:blur(6px);
+  position:sticky;top:0;
+  background:linear-gradient(120deg,var(--grad-start),var(--grad-mid));
   z-index:50;
+  box-shadow:0 1px 0 rgba(255,255,255,.08);
 }
-.site-header .container{display:flex;align-items:center;justify-content:space-between;padding-top:14px;padding-bottom:14px;gap:24px;}
-.brand{display:flex;align-items:center;gap:12px;color:var(--text);flex-shrink:0;}
+.site-header .container{display:flex;align-items:center;justify-content:space-between;padding-top:12px;padding-bottom:12px;gap:24px;}
+.brand{display:flex;align-items:center;gap:12px;color:#fff;flex-shrink:0;}
 .brand:hover{text-decoration:none;}
-.brand img{height:42px;width:auto;display:block;}
+.brand img{height:40px;width:auto;display:block;}
 .brand .brand-text{line-height:1.15;}
 .brand .brand-text .big{display:block;font-weight:700;font-size:1.05rem;}
-.brand .brand-text .small{display:block;font-size:.78rem;color:var(--text-muted);}
+.brand .brand-text .small{display:block;font-size:.78rem;color:rgba(255,255,255,.7);}
 
 nav.main-nav{display:flex;align-items:center;gap:2px;flex-wrap:wrap;position:relative;}
 nav.main-nav > a,
-nav.main-nav > .has-sub > a{padding:8px 12px;border-radius:7px;color:var(--text);font-size:.95rem;font-weight:500;display:inline-block;}
+nav.main-nav > .has-sub > a{padding:8px 12px;border-radius:7px;color:rgba(255,255,255,.88);font-size:.95rem;font-weight:500;display:inline-block;}
 nav.main-nav > a:hover,
-nav.main-nav > .has-sub > a:hover{background:var(--accent-light);color:var(--accent-dark);text-decoration:none;}
+nav.main-nav > .has-sub > a:hover{background:rgba(255,255,255,.14);color:#fff;text-decoration:none;}
 nav.main-nav > a.active,
-nav.main-nav > .has-sub > a.active{background:var(--accent-light);color:var(--accent-dark);}
+nav.main-nav > .has-sub > a.active{background:rgba(255,255,255,.16);color:#fff;}
 nav.main-nav .has-sub{position:relative;}
 nav.main-nav .sub-menu{
   display:none;position:absolute;top:100%;left:0;background:#fff;border:1px solid var(--border);
-  border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.1);padding:6px;min-width:230px;z-index:60;
+  border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:6px;min-width:230px;z-index:60;
 }
 nav.main-nav .has-sub:hover .sub-menu{display:block;}
 nav.main-nav .sub-menu a{display:block;padding:8px 10px;border-radius:6px;font-size:.9rem;color:var(--text);}
 nav.main-nav .sub-menu a:hover{background:var(--accent-light);color:var(--accent-dark);text-decoration:none;}
-.menu-toggle{display:none;background:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:1.1rem;cursor:pointer;}
+.menu-toggle{display:none;background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:8px 10px;font-size:1.1rem;cursor:pointer;}
 
 /* ---------- Hero ---------- */
 .hero{
@@ -151,10 +155,13 @@ footer .foot-grid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:
 /* ---------- Mobile nav ---------- */
 @media (max-width:860px){
   .menu-toggle{display:inline-block;}
-  nav.main-nav{display:none;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:#fff;
-    border-bottom:1px solid var(--border);padding:10px 24px 18px;}
+  nav.main-nav{display:none;flex-direction:column;position:absolute;top:100%;left:0;right:0;
+    background:var(--grad-mid);
+    padding:10px 24px 18px;}
   nav.main-nav.open{display:flex;}
-  nav.main-nav .sub-menu{position:static;box-shadow:none;border:none;display:block;padding-left:12px;}
+  nav.main-nav .sub-menu{position:static;box-shadow:none;border:none;border-radius:0;display:block;padding-left:12px;background:transparent;}
+  nav.main-nav .sub-menu a{color:rgba(255,255,255,.8);}
+  nav.main-nav .sub-menu a:hover{background:rgba(255,255,255,.12);color:#fff;}
   nav.main-nav .has-sub:hover .sub-menu{display:block;}
   .site-header .container{position:relative;flex-wrap:wrap;}
 }
