@@ -98,6 +98,7 @@ def page_shell(title, active, body, description=""):
     </div>
   </div>
 </footer>
+<script src="assets/site.js"></script>
 </body>
 </html>
 """
@@ -213,18 +214,47 @@ def build_index():
 
 
 # ---------------------------------------------------------------------------
-# NOTICIAS
+# Helper generico de pestañas
+# ---------------------------------------------------------------------------
+def tabs_component(tabs, wrap_id=None):
+    """tabs: lista de (tab_id, label, html_contenido). Genera un bloque de
+    pestañas; la primera queda activa por defecto."""
+    nav_btns = []
+    panels = []
+    for i, (tab_id, label, content_html) in enumerate(tabs):
+        active = " active" if i == 0 else ""
+        nav_btns.append(
+            f'<button class="{active.strip()}" data-tab="{tab_id}">{escape(label)}</button>'
+        )
+        panels.append(f'<div class="tab-panel{active}" id="{tab_id}">{content_html}</div>')
+    idattr = f' id="{wrap_id}"' if wrap_id else ""
+    return f"""<div class="tabs-wrap"{idattr}>
+  <div class="tabs-nav">{"".join(nav_btns)}</div>
+  <div class="tab-panels">{"".join(panels)}</div>
+</div>"""
+
+
+# ---------------------------------------------------------------------------
+# NOTICIAS  (organizadas por año, en pestañas)
 # ---------------------------------------------------------------------------
 def build_noticias():
-    items = []
+    by_year = {}
     for p in POSTS:
-        content = p["content"]
-        img_m = re.search(r'<img[^>]+src="([^"]+)"', content)
-        img = img_m.group(1) if img_m else ""
-        body_no_img = re.sub(r'<img[^>]*>', '', content)
-        date = (p.get("date") or "")[:10]
-        thumb = f'<div class="thumb"><img src="{img}" alt=""></div>' if img else '<div class="thumb"></div>'
-        items.append(f"""
+        year = (p.get("date") or "0000")[:4]
+        by_year.setdefault(year, []).append(p)
+
+    years = sorted(by_year.keys(), reverse=True)
+    tabs = []
+    for year in years:
+        items = []
+        for p in by_year[year]:
+            content = p["content"]
+            img_m = re.search(r'<img[^>]+src="([^"]+)"', content)
+            img = img_m.group(1) if img_m else ""
+            body_no_img = re.sub(r'<img[^>]*>', '', content)
+            date = (p.get("date") or "")[:10]
+            thumb = f'<div class="thumb"><img src="{img}" alt=""></div>' if img else '<div class="thumb"></div>'
+            items.append(f"""
       <article class="news-item" id="post-{p['id']}">
         {thumb}
         <div class="content">
@@ -233,17 +263,18 @@ def build_noticias():
           {body_no_img}
         </div>
       </article>""")
+        tabs.append((f"noticias-{year}", year, "".join(items)))
 
     body = f"""
 <section class="hero">
   <div class="container">
     <h1>Noticias</h1>
-    <p>Actividades, visitas, talleres y novedades del laboratorio.</p>
+    <p>Actividades, visitas, talleres y novedades del laboratorio, organizadas por año.</p>
   </div>
 </section>
 <section>
   <div class="container content-block">
-    {"".join(items)}
+    {tabs_component(tabs)}
   </div>
 </section>
 """
@@ -251,12 +282,107 @@ def build_noticias():
 
 
 # ---------------------------------------------------------------------------
-# INVESTIGACION (areas + proyectos + publicaciones)
+# Parser de Publicaciones: separa en 4 categorias (capitulos de libros,
+# internacionales, nacionales, reportes de investigacion), con sub-grupos
+# (revistas / congresos / eventos) y años dentro de cada una.
+# ---------------------------------------------------------------------------
+_current_year = [None]
+
+
+def parse_publicaciones():
+    from bs4 import BeautifulSoup
+
+    html = PAGES["publicaciones"]["content"]
+    soup = BeautifulSoup(html, "html.parser")
+
+    CATEGORY_MAP = {
+        "Capítulos de Libros": "capitulos",
+        "Publicaciones Internacionales": "internacionales",
+        "Publicaciones Nacionales": "nacionales",
+    }
+    REPORTES_LABEL = "Reportes de Investigación"
+
+    # estructura: cat_key -> subcat_label (o "") -> year -> [html entries]
+    data = {"capitulos": {}, "internacionales": {}, "nacionales": {}, "reportes": {}}
+
+    cat_key = None
+    subcat = ""
+    for node in soup.children:
+        name = getattr(node, "name", None)
+        if name == "h3":
+            text = node.get_text(strip=True).replace("\xa0", " ")
+            cat_key = CATEGORY_MAP.get(text)
+            subcat = ""
+        elif name == "h4":
+            text = node.get_text(strip=True).replace("\xa0", " ")
+            if text == REPORTES_LABEL:
+                cat_key = "reportes"
+                subcat = ""
+            elif text.isdigit():
+                if cat_key:
+                    data[cat_key].setdefault(subcat, {}).setdefault(text, [])
+                _current_year[0] = text
+            else:
+                subcat = text
+                _current_year[0] = None
+        elif name == "p":
+            if cat_key and _current_year[0]:
+                entry = f'<p class="pub-entry">{node.decode_contents()}</p>'
+                data[cat_key].setdefault(subcat, {}).setdefault(_current_year[0], []).append(entry)
+
+    return data
+
+
+def render_publicaciones_category(cat_data):
+    """cat_data: subcat_label -> year -> [entries]. Ignora claves auxiliares."""
+    parts = []
+    # se respeta el orden original del documento fuente (orden de inserción);
+    # el grupo sin subcategoria (p.ej. Capitulos de libros) va primero si existe
+    subcats = [k for k in cat_data.keys() if not k.startswith("_")]
+    subcats.sort(key=lambda s: s != "")
+    for subcat in subcats:
+        years = cat_data[subcat]
+        year_list = sorted(years.keys(), reverse=True)
+        year_html = []
+        for year in year_list:
+            entries = "".join(years[year])
+            year_html.append(f'<div class="year-group"><h3>{escape(year)}</h3>{entries}</div>')
+        inner = "".join(year_html)
+        if subcat:
+            parts.append(f'<div class="pub-subgroup"><h4>{escape(subcat)}</h4>{inner}</div>')
+        else:
+            parts.append(inner)
+    return "".join(parts) or "<p>Sin publicaciones registradas en esta categoría.</p>"
+
+
+def build_publicaciones_tabs():
+    data = parse_publicaciones()
+    labels = [
+        ("pub-capitulos", "Capítulos de libros", "capitulos"),
+        ("pub-internacionales", "Publicaciones internacionales", "internacionales"),
+        ("pub-nacionales", "Publicaciones nacionales", "nacionales"),
+        ("pub-reportes", "Reportes de investigación", "reportes"),
+    ]
+    tabs = [
+        (tab_id, label, render_publicaciones_category(data[key]))
+        for tab_id, label, key in labels
+    ]
+    return tabs_component(tabs, wrap_id="publicaciones")
+
+
+# ---------------------------------------------------------------------------
+# INVESTIGACION (Areas / Proyectos / Publicaciones en pestañas)
 # ---------------------------------------------------------------------------
 def build_investigacion():
     areas = strip_outer(PAGES["areas"]["content"])
     proyectos = strip_outer(PAGES["proyectos"]["content"])
-    publicaciones = strip_outer(PAGES["publicaciones"]["content"])
+    publicaciones_tabs = build_publicaciones_tabs()
+
+    tabs = [
+        ("areas", "Áreas", f'<div class="content-block">{areas}</div>'),
+        ("proyectos", "Proyectos", f'<div class="content-block">{proyectos}</div>'),
+        ("publicaciones", "Publicaciones", publicaciones_tabs),
+    ]
 
     body = f"""
 <section class="hero">
@@ -266,24 +392,9 @@ def build_investigacion():
   </div>
 </section>
 
-<section id="areas">
-  <div class="container content-block">
-    <h2>Áreas</h2>
-    {areas}
-  </div>
-</section>
-
-<section class="alt" id="proyectos">
-  <div class="container content-block">
-    <h2>Proyectos</h2>
-    {proyectos}
-  </div>
-</section>
-
-<section id="publicaciones">
-  <div class="container content-block">
-    <h2>Publicaciones</h2>
-    {publicaciones}
+<section>
+  <div class="container">
+    {tabs_component(tabs)}
   </div>
 </section>
 """
@@ -291,7 +402,7 @@ def build_investigacion():
 
 
 # ---------------------------------------------------------------------------
-# SERVICIOS  (sin la sección "modelos")
+# SERVICIOS  (en pestañas, sin la sección "modelos")
 # ---------------------------------------------------------------------------
 def build_servicios():
     desarrollo = strip_outer(PAGES["desarrollo-de-proyectos"]["content"])
@@ -299,6 +410,14 @@ def build_servicios():
     consultoria = strip_outer(PAGES["consultoria-y-experticia"]["content"])
     rea = strip_outer(PAGES["rea-utiles"]["content"])
     politicas = strip_outer(PAGES["recursos"]["content"])
+
+    tabs = [
+        ("desarrollo-de-proyectos", "Desarrollo de Proyectos", f'<div class="content-block">{desarrollo}</div>'),
+        ("provision-de-recursos-materiales", "Provisión de Recursos", f'<div class="content-block">{provision}</div>'),
+        ("consultoria-y-experticia", "Consultoría y experticia", f'<div class="content-block">{consultoria}</div>'),
+        ("rea-utiles", "REA útiles", f'<div class="content-block">{rea}</div>'),
+        ("politicas-de-privacidad", "Políticas de privacidad", f'<div class="content-block">{politicas}</div>'),
+    ]
 
     body = f"""
 <section class="hero">
@@ -308,38 +427,9 @@ def build_servicios():
   </div>
 </section>
 
-<section id="desarrollo-de-proyectos">
-  <div class="container content-block">
-    <h2>Desarrollo de Proyectos</h2>
-    {desarrollo}
-  </div>
-</section>
-
-<section class="alt" id="provision-de-recursos-materiales">
-  <div class="container content-block">
-    <h2>Provisión de Recursos Materiales</h2>
-    {provision}
-  </div>
-</section>
-
-<section id="consultoria-y-experticia">
-  <div class="container content-block">
-    <h2>Consultoría y experticia</h2>
-    {consultoria}
-  </div>
-</section>
-
-<section class="alt" id="rea-utiles">
-  <div class="container content-block">
-    <h2>REA útiles</h2>
-    {rea}
-  </div>
-</section>
-
-<section id="politicas-de-privacidad">
-  <div class="container content-block">
-    <h2>Políticas de privacidad</h2>
-    {politicas}
+<section>
+  <div class="container">
+    {tabs_component(tabs)}
   </div>
 </section>
 """

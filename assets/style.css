@@ -99,6 +99,35 @@ section.alt{background:var(--bg-alt);}
 .section-head{margin-bottom:28px;}
 .section-head p{color:var(--text-muted);max-width:640px;}
 
+/* ---------- Tabs ---------- */
+.tabs-wrap{margin-top:8px;}
+.tabs-nav{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:28px;}
+.tabs-nav > button{
+  appearance:none;background:none;border:none;cursor:pointer;
+  padding:11px 16px;font-size:.95rem;font-weight:600;color:var(--text-muted);
+  border-bottom:3px solid transparent;margin-bottom:-1px;font-family:var(--font);
+}
+.tabs-nav > button:hover{color:var(--accent-dark);}
+.tabs-nav > button.active{color:var(--accent-dark);border-bottom-color:var(--accent2);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;animation:fadein .2s ease;}
+@keyframes fadein{from{opacity:0;}to{opacity:1;}}
+
+/* sub-pestañas (anidadas, p.ej. categorias de Publicaciones) un poco mas chicas */
+.tab-panel .tabs-nav{margin-bottom:22px;}
+.tab-panel .tabs-nav > button{padding:8px 14px;font-size:.88rem;}
+
+/* grupos de año dentro de un panel (noticias, publicaciones) */
+.year-group{margin-bottom:8px;}
+.year-group h3{
+  font-size:1.05rem;color:var(--accent-dark);border-bottom:2px solid var(--accent-light);
+  padding-bottom:6px;margin-bottom:16px;margin-top:0;
+}
+.pub-subgroup{margin-bottom:28px;}
+.pub-subgroup > h4{font-size:.95rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:14px;}
+.pub-entry{font-size:.92rem;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.pub-entry:last-child{border-bottom:none;}
+
 /* ---------- Cards / grid ---------- */
 .grid{display:grid;gap:22px;}
 .grid-2{grid-template-columns:repeat(2,1fr);}
