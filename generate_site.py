@@ -534,6 +534,11 @@ def main():
         "contacto.html": build_contacto(),
     }
     for fname, html in pages.items():
+        # GitHub Pages sirve este sitio bajo /pag/ (repo de proyecto), asi que
+        # las rutas a recursos deben ser relativas, nunca absolutas desde la
+        # raiz del dominio (lcgunsl.github.io), o apuntarian al org root.
+        html = html.replace('"/wp-content', '"wp-content')
+        html = html.replace("'/wp-content", "'wp-content")
         (ROOT / fname).write_text(html, encoding="utf-8")
         print("Generado:", fname, len(html), "bytes")
 
