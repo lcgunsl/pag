@@ -57,6 +57,22 @@ def nav_html(active):
     return "\n          ".join(parts)
 
 
+BROKEN_IMG_SCRIPT = """<script>
+// Oculta imagenes rotas apenas fallan (algunas, como las de Provision de
+// Recursos, apuntan a un subdominio viejo de la UNSL que ya no existe).
+// Va inline en el <head> -- si fuera en site.js, que carga al final del
+// body, las imagenes rotas ya habrian disparado "error" antes de que el
+// listener llegue a existir.
+document.addEventListener("error", function (e) {
+  if (e.target && e.target.tagName === "IMG") {
+    var box = e.target.closest(".gallery-thumb, .rea-thumb, .card-thumb, .thumb");
+    if (box) box.style.display = "none";
+    else e.target.style.display = "none";
+  }
+}, true);
+</script>"""
+
+
 def page_shell(title, active, body, description=""):
     desc = description or f"{SITE_NAME} - Universidad Nacional de San Luis"
     return f"""<!DOCTYPE html>
@@ -68,6 +84,7 @@ def page_shell(title, active, body, description=""):
 <meta name="description" content="{escape(desc)}">
 <link rel="icon" href="assets/favicon.png">
 <link rel="stylesheet" href="assets/style.css">
+{BROKEN_IMG_SCRIPT}
 </head>
 <body>
 <header class="site-header">
@@ -516,20 +533,121 @@ def build_investigacion():
 
 
 # ---------------------------------------------------------------------------
+# REA UTILES: cajas/tarjetas, una por recurso (app, herramienta, etc.)
+# ---------------------------------------------------------------------------
+def build_rea_cards():
+    from bs4 import BeautifulSoup
+
+    html = PAGES["rea-utiles"]["content"]
+    soup = BeautifulSoup(html, "html.parser")
+
+    cards = []
+    current = None
+    for node in soup.children:
+        tag = getattr(node, "name", None)
+        if tag == "p":
+            strong = node.find(["strong", "b"])
+            if strong:
+                if current:
+                    cards.append(current)
+                title = strong.get_text(strip=True)
+                full_text = node.get_text()
+                desc = full_text.split(":", 1)[1].strip() if ":" in full_text else full_text.strip()
+                current = {"title": title, "desc": desc, "img": None, "link": None, "link_text": "Descargar"}
+        elif tag == "img" and current is not None:
+            current["img"] = node.get("src")
+        elif tag == "a" and current is not None:
+            current["link"] = node.get("href")
+            current["link_text"] = node.get_text(strip=True) or "Descargar"
+    if current:
+        cards.append(current)
+
+    cards_html = []
+    for c in cards:
+        thumb = (
+            f'<div class="rea-thumb"><img src="{c["img"]}" alt=""></div>'
+            if c["img"]
+            else '<div class="rea-thumb placeholder"></div>'
+        )
+        link_html = (
+            f'<a class="btn-small" href="{c["link"]}" target="_blank" rel="noopener">{escape(c["link_text"])}</a>'
+            if c["link"]
+            else ""
+        )
+        cards_html.append(f"""<div class="card rea-card">
+          {thumb}
+          <h3>{escape(c["title"])}</h3>
+          <p>{escape(c["desc"])}</p>
+          {link_html}
+        </div>""")
+
+    return f'<div class="grid grid-3">{"".join(cards_html)}</div>'
+
+
+# ---------------------------------------------------------------------------
+# PROVISION DE RECURSOS MATERIALES: una pestaña por categoria de equipo
+# ---------------------------------------------------------------------------
+def build_provision_tabs():
+    from bs4 import BeautifulSoup
+
+    html = PAGES["provision-de-recursos-materiales"]["content"]
+    soup = BeautifulSoup(html, "html.parser")
+    # el contenido original viene entero envuelto en un <p> invalido (herencia
+    # del markup de WP); se recorren sus hijos directamente
+    outer = soup.find("p")
+    nodes = list(outer.children) if outer else list(soup.children)
+
+    categories = []
+    current_name = None
+    current_parts = []
+    for node in nodes:
+        tag = getattr(node, "name", None)
+        if tag == "h4":
+            if current_name:
+                categories.append((current_name, current_parts))
+            current_name = node.get_text(strip=True)
+            current_parts = []
+        elif tag == "ul":
+            imgs = node.find_all("img")
+            if imgs:
+                thumbs = "".join(
+                    f'<div class="gallery-thumb"><img src="{im.get("src", "")}" alt=""></div>' for im in imgs
+                )
+                current_parts.append(f'<div class="gallery">{thumbs}</div>')
+            elif node.get_text(strip=True):
+                current_parts.append(str(node))
+        elif tag == "img":
+            current_parts.append(
+                f'<div class="gallery"><div class="gallery-thumb"><img src="{node.get("src", "")}" alt=""></div></div>'
+            )
+        elif tag == "p" and node.get_text(strip=True):
+            current_parts.append(str(node))
+    if current_name:
+        categories.append((current_name, current_parts))
+
+    tabs = []
+    for i, (name, parts) in enumerate(categories):
+        tab_id = f"prov-{i}"
+        content = "".join(parts) or "<p>Más información próximamente.</p>"
+        tabs.append((tab_id, name, f'<div class="content-block">{content}</div>'))
+    return tabs_component(tabs, wrap_id="provision-tabs")
+
+
+# ---------------------------------------------------------------------------
 # SERVICIOS  (en pestañas, sin la sección "modelos")
 # ---------------------------------------------------------------------------
 def build_servicios():
     desarrollo = strip_outer(PAGES["desarrollo-de-proyectos"]["content"])
-    provision = strip_outer(PAGES["provision-de-recursos-materiales"]["content"])
+    provision_tabs = build_provision_tabs()
     consultoria = strip_outer(PAGES["consultoria-y-experticia"]["content"])
-    rea = strip_outer(PAGES["rea-utiles"]["content"])
+    rea_cards = build_rea_cards()
     politicas = strip_outer(PAGES["recursos"]["content"])
 
     tabs = [
         ("desarrollo-de-proyectos", "Desarrollo de Proyectos", f'<div class="content-block">{desarrollo}</div>'),
-        ("provision-de-recursos-materiales", "Provisión de Recursos", f'<div class="content-block">{provision}</div>'),
+        ("provision-de-recursos-materiales", "Provisión de Recursos", provision_tabs),
         ("consultoria-y-experticia", "Consultoría y experticia", f'<div class="content-block">{consultoria}</div>'),
-        ("rea-utiles", "REA útiles", f'<div class="content-block">{rea}</div>'),
+        ("rea-utiles", "REA útiles", rea_cards),
         ("politicas-de-privacidad", "Políticas de privacidad", f'<div class="content-block">{politicas}</div>'),
     ]
 

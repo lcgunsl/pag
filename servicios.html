@@ -7,6 +7,20 @@
 <meta name="description" content="Laboratorio de Computación Gráfica - Universidad Nacional de San Luis">
 <link rel="icon" href="assets/favicon.png">
 <link rel="stylesheet" href="assets/style.css">
+<script>
+// Oculta imagenes rotas apenas fallan (algunas, como las de Provision de
+// Recursos, apuntan a un subdominio viejo de la UNSL que ya no existe).
+// Va inline en el <head> -- si fuera en site.js, que carga al final del
+// body, las imagenes rotas ya habrian disparado "error" antes de que el
+// listener llegue a existir.
+document.addEventListener("error", function (e) {
+  if (e.target && e.target.tagName === "IMG") {
+    var box = e.target.closest(".gallery-thumb, .rea-thumb, .card-thumb, .thumb");
+    if (box) box.style.display = "none";
+    else e.target.style.display = "none";
+  }
+}, true);
+</script>
 </head>
 <body>
 <header class="site-header">
@@ -42,75 +56,41 @@
   <div class="tab-panels"><div class="tab-panel active" id="desarrollo-de-proyectos"><div class="content-block"><h3><strong>Desarrollo de Proyectos</strong></h3>
 <p>El Laboratorio de Computación Gráfica desarrolla todo tipo de proyectos relacionados con el mundo de la industria, la investigación académica o médica.</p>
 <p>Los proyectos industriales se relacionan con las áreas del modelado y diseño, la arquitectura (museografía y patrimonio cultural), el deporte (entrenador virtual), la salud (terapias físicas), y la ergonomía de las interfaces humano computadoras. </p>
-<p>Los proyectos de investigación académica exploran los temas de la presencia, la navegación y la interconexión en ambientes virtuales y estudian en forma general el comportamiento de los humanos en situaciones inmersivas.</p></div></div><div class="tab-panel" id="provision-de-recursos-materiales"><div class="content-block"><p>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/01b-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/01a-300x200.jpg"/></li></ul>
-<h4><strong>Computer Assisted Virtual Environment – CAVE</strong></h4>
-<p>Ambiente inmersivo tipo CAVE (Computer Assisted Virtual Environment) construido y desarrollado en la UNSL. El ambiente puede utilizarse para la realización de revisiones de proyectos a escala 1:1 (arquitectónica, automotriz, aeronáutica, patrimonio cultural, …) con o sin desarrollo de infografía y / o desarrollo informático.</p>
-<ul>
+<p>Los proyectos de investigación académica exploran los temas de la presencia, la navegación y la interconexión en ambientes virtuales y estudian en forma general el comportamiento de los humanos en situaciones inmersivas.</p></div></div><div class="tab-panel" id="provision-de-recursos-materiales"><div class="tabs-wrap" id="provision-tabs">
+  <div class="tabs-nav"><button class="active" data-tab="prov-0">Computer Assisted Virtual Environment – CAVE</button><button class="" data-tab="prov-1">Impresoras 3D</button><button class="" data-tab="prov-2">Scanner 3D</button><button class="" data-tab="prov-3">Computadoras de Alta Performance</button><button class="" data-tab="prov-4">Monitores 3D</button><button class="" data-tab="prov-5">Proyectores de alta resolución de distancia ultra corta</button><button class="" data-tab="prov-6">Lentes 3D activos</button><button class="" data-tab="prov-7">Casco de visualización 3D</button><button class="" data-tab="prov-8">Simulador de manejo</button><button class="" data-tab="prov-9">Guantes de datos</button><button class="" data-tab="prov-10">Sensor de movimiento de brazo</button><button class="" data-tab="prov-11">Sensor de movimiento corporal</button><button class="" data-tab="prov-12">Sensor de movimiento manos</button></div>
+  <div class="tab-panels"><div class="tab-panel active" id="prov-0"><div class="content-block"><p>Ambiente inmersivo tipo CAVE (Computer Assisted Virtual Environment) construido y desarrollado en la UNSL. El ambiente puede utilizarse para la realización de revisiones de proyectos a escala 1:1 (arquitectónica, automotriz, aeronáutica, patrimonio cultural, …) con o sin desarrollo de infografía y / o desarrollo informático.</p><ul>
 <li>Estructura: soporte metálico para distribuir en forma envolvente 3 pantallas retroproyectadas de 3mts de ancho y 3mts de alto c/u.</li>
 <li>Hardware: CPU de altas prestaciones INTEL i7-7700K, 16GB DDR4, ASUS Nvidia GTX 1070. Proyectores de alta resolución y de distancia ultra corta DELL S500.</li>
 <li>Software: Librería Gráfica Libre OPENGL, Motor de Renderizado Gráfico Orientado a Objeto OGRE3D.</li>
-</ul>
-<img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/02a-300x225.jpg"/>
-<h4><strong>Impresoras 3D</strong></h4>
-<p><br/>
-Modelo Prusa i3: área de impresión 20x20x20cm, Material de impresión ABS, PLA, FLEX</p>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/04a-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/04b-300x225.jpg"/></li></ul>
-<h4><strong>Scanner 3D</strong></h4>
-<img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/04a-1-300x225.jpg"/>
-<h4><strong>Computadoras de Alta Performance</strong></h4>
-<ul>
+</ul><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/02a-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-1"><div class="content-block"><p><br/>
+Modelo Prusa i3: área de impresión 20x20x20cm, Material de impresión ABS, PLA, FLEX</p><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/04a-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/04b-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-2"><div class="content-block"><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/04a-1-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-3"><div class="content-block"><ul>
 <li>8 PC equipadas con hardware dedicado a las aplicaciones gráficas de tiempo real</li>
-</ul>
-<img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/05a-300x225.jpg"/>
-<h4><strong>Monitores 3D</strong></h4>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/06a-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/06b-300x225.jpg"/></li></ul>
-<h4><strong>Proyectores de alta resolución de distancia ultra corta</strong></h4>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/07b-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/07c-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/07a-300x225.jpg"/></li></ul>
-<h4><strong>Lentes 3D activos</strong></h4>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/08b-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/08a-300x225.jpg"/></li></ul>
-<h4><strong>Casco de visualización 3D</strong></h4>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/09b-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/09a-300x225.jpg"/></li></ul>
-<h4><strong>Simulador de manejo</strong></h4>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/010a-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/010b-300x225.jpg"/></li></ul>
-<h4><strong>Guantes de datos</strong></h4>
-<ul>
+</ul><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/05a-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-4"><div class="content-block"><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/06a-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/06b-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-5"><div class="content-block"><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/07b-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/07c-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/07a-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-6"><div class="content-block"><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/08b-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/08a-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-7"><div class="content-block"><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/09b-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/09a-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-8"><div class="content-block"><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/010a-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/010b-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-9"><div class="content-block"><ul>
 <li>
 5 bend sensors with 12 bit ADC for accurate finger movements tracking;
 </li>
-</ul>
-<ul>
+</ul><ul>
 <li>
 embedded gyroscopes, accelerometer and magnetomer for complete hand attitude trackig;
 </li>
-</ul>
-<ul>
+</ul><ul>
 <li>
 USB and WiFi interface
 </li>
-</ul>
-<ul>
+</ul><ul>
 <li>
 Battery powered (only WiFi version)
 </li>
-</ul>
-<ul>
+</ul><ul>
 <li>
 Low power, up to 5 hours of operations with full charger battery
 </li>
-</ul>
-<ul>
+</ul><ul>
 <li>
 Complete SDKs for custom application developmen
 </li>
-</ul>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/011b-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/011a-300x225.jpg"/></li></ul>
-<h4><strong>Sensor de movimiento de brazo</strong></h4>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/012a-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/012b-300x225.jpg"/></li></ul>
-<h4><strong>Sensor de movimiento corporal</strong></h4>
-<ul><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/013a-300x225.jpg"/></li><li><img alt="" src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/013b-300x225.jpg"/></li></ul>
-<h4><strong>Sensor de movimiento manos</strong></h4>
-</p></div></div><div class="tab-panel" id="consultoria-y-experticia"><div class="content-block"><p>Un equipo de ingenieros expertos en desarrollo de computadora 3D en tiempo real está disponible para satisfacer las necesidades en aplicaciones tales como:</p>
+</ul><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/011b-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/011a-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-10"><div class="content-block"><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/012a-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/012b-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-11"><div class="content-block"><div class="gallery"><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/013a-300x225.jpg" alt=""></div><div class="gallery-thumb"><img src="http://webfcfmyn.unsl.edu.ar/~laboratoriocomputaciongrafica/wp-content/uploads/2017/10/013b-300x225.jpg" alt=""></div></div></div></div><div class="tab-panel" id="prov-12"><div class="content-block"><p>Más información próximamente.</p></div></div></div>
+</div></div><div class="tab-panel" id="consultoria-y-experticia"><div class="content-block"><p>Un equipo de ingenieros expertos en desarrollo de computadora 3D en tiempo real está disponible para satisfacer las necesidades en aplicaciones tales como:</p>
 <ul>
 <li>Estudio de viabilidad de soluciones de realidad virtual</li>
 <li>Visualización y Simulación</li>
@@ -120,12 +100,22 @@ Complete SDKs for custom application developmen
 <li>Captura de Movimientos</li>
 <li>Modelado, Animación y diseño</li>
 <li>Desarrollo de aplicaciones y herramientas de usuario</li>
-</ul></div></div><div class="tab-panel" id="rea-utiles"><div class="content-block"><p><strong>AR4AXO</strong>: Es una aplicación de Realidad Aumentada para practicar el paso del sistema Triédrico al Axonométrico.</p>
-<img alt="" src="wp-content/uploads/2022/04/dfsdf.png"/><a href="https://play.google.com/store/apps/details?id=com.UNSL.SR&amp;gl=US">Descargar</a>
-<p><strong>VR4Tri</strong>: Es una aplicación de Realidad Virtual No Inmersiva para practicar y corroborar la realización del sistema Triédrico. </p>
-<img alt="" src="wp-content/uploads/2022/04/rv_2.png"/><a href="https://drive.google.com/file/d/1Y_fCBIZ0eHgTpy8fY19ppbLgbXLRSXDp/view?usp=sharing">Descargar</a>
-<p><strong>3D4TriAxo</strong>: Es una herramienta que utiliza técnicas holográficas a fin de lograr la ilusión óptica de recrear un objeto virtual en el mundo real. Para el uso de los recursos se requiere la construcción de una pirámide truncada en vidrio o plástico transparente.</p>
-<img alt="" src="wp-content/uploads/2022/04/29_Holograma_SR_2.jpg"/><a href="https://drive.google.com/drive/folders/1SiHVD6WqKNuU23Gfm8MFSKFmRTr7arYW?usp=sharing">Descargar recursos</a></div></div><div class="tab-panel" id="politicas-de-privacidad"><div class="content-block"><h4><strong>Políticas de Privacidad</strong></h4>
+</ul></div></div><div class="tab-panel" id="rea-utiles"><div class="grid grid-3"><div class="card rea-card">
+          <div class="rea-thumb"><img src="wp-content/uploads/2022/04/dfsdf.png" alt=""></div>
+          <h3>AR4AXO</h3>
+          <p>Es una aplicación de Realidad Aumentada para practicar el paso del sistema Triédrico al Axonométrico.</p>
+          <a class="btn-small" href="https://play.google.com/store/apps/details?id=com.UNSL.SR&gl=US" target="_blank" rel="noopener">Descargar</a>
+        </div><div class="card rea-card">
+          <div class="rea-thumb"><img src="wp-content/uploads/2022/04/rv_2.png" alt=""></div>
+          <h3>VR4Tri</h3>
+          <p>Es una aplicación de Realidad Virtual No Inmersiva para practicar y corroborar la realización del sistema Triédrico.</p>
+          <a class="btn-small" href="https://drive.google.com/file/d/1Y_fCBIZ0eHgTpy8fY19ppbLgbXLRSXDp/view?usp=sharing" target="_blank" rel="noopener">Descargar</a>
+        </div><div class="card rea-card">
+          <div class="rea-thumb"><img src="wp-content/uploads/2022/04/29_Holograma_SR_2.jpg" alt=""></div>
+          <h3>3D4TriAxo</h3>
+          <p>Es una herramienta que utiliza técnicas holográficas a fin de lograr la ilusión óptica de recrear un objeto virtual en el mundo real. Para el uso de los recursos se requiere la construcción de una pirámide truncada en vidrio o plástico transparente.</p>
+          <a class="btn-small" href="https://drive.google.com/drive/folders/1SiHVD6WqKNuU23Gfm8MFSKFmRTr7arYW?usp=sharing" target="_blank" rel="noopener">Descargar recursos</a>
+        </div></div></div><div class="tab-panel" id="politicas-de-privacidad"><div class="content-block"><h4><strong>Políticas de Privacidad</strong></h4>
 <p>El Laboratorio de Computación Gráfica (LCG) proporciona esta Política de Privacidad para ayudar a explicar nuestras prácticas de recopilación de información en nuestras aplicaciones para dispositivos móviles. Esta Política de Privacidad se emplea en todas nuestras aplicaciones a menos que se indique lo contrario.</p>
 <p>Nuestras aplicaciones para dispositivos móviles no tienen un costo para su descarga o uso.</p>
 <p>¿Qué información obtiene la aplicación y cómo se utiliza?</p>

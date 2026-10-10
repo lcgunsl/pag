@@ -1,3 +1,7 @@
+// (el manejo de imagenes rotas vive inline en el <head> de cada pagina,
+// ver page_shell() en generate_site.py -- tiene que registrarse antes de
+// que el parser llegue a los <img>, y este script carga al final del body)
+
 // Tabs genéricas (soportan anidamiento: una pestaña puede contener otro
 // grupo de pestañas adentro, p.ej. Investigación > Publicaciones > categorías)
 document.addEventListener("DOMContentLoaded", function () {

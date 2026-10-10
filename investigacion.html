@@ -7,6 +7,20 @@
 <meta name="description" content="Laboratorio de Computación Gráfica - Universidad Nacional de San Luis">
 <link rel="icon" href="assets/favicon.png">
 <link rel="stylesheet" href="assets/style.css">
+<script>
+// Oculta imagenes rotas apenas fallan (algunas, como las de Provision de
+// Recursos, apuntan a un subdominio viejo de la UNSL que ya no existe).
+// Va inline en el <head> -- si fuera en site.js, que carga al final del
+// body, las imagenes rotas ya habrian disparado "error" antes de que el
+// listener llegue a existir.
+document.addEventListener("error", function (e) {
+  if (e.target && e.target.tagName === "IMG") {
+    var box = e.target.closest(".gallery-thumb, .rea-thumb, .card-thumb, .thumb");
+    if (box) box.style.display = "none";
+    else e.target.style.display = "none";
+  }
+}, true);
+</script>
 </head>
 <body>
 <header class="site-header">
