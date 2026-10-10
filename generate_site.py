@@ -585,9 +585,11 @@ def build_rea_cards():
 
 
 # ---------------------------------------------------------------------------
-# PROVISION DE RECURSOS MATERIALES: una pestaña por categoria de equipo
+# PROVISION DE RECURSOS MATERIALES: cajitas (una por categoria de equipo),
+# con la primera imagen de cada una como preview -- con 13 categorias, un
+# renglon de pestañas de texto quedaba muy apretado.
 # ---------------------------------------------------------------------------
-def build_provision_tabs():
+def build_provision_cards():
     from bs4 import BeautifulSoup
 
     html = PAGES["provision-de-recursos-materiales"]["content"]
@@ -597,19 +599,27 @@ def build_provision_tabs():
     outer = soup.find("p")
     nodes = list(outer.children) if outer else list(soup.children)
 
-    categories = []
+    categories = []  # [(nombre, thumb_url_o_None, [partes_html])]
     current_name = None
+    current_thumb = None
     current_parts = []
+
+    def flush():
+        if current_name:
+            categories.append((current_name, current_thumb, current_parts))
+
     for node in nodes:
         tag = getattr(node, "name", None)
         if tag == "h4":
-            if current_name:
-                categories.append((current_name, current_parts))
+            flush()
             current_name = node.get_text(strip=True)
+            current_thumb = None
             current_parts = []
         elif tag == "ul":
             imgs = node.find_all("img")
             if imgs:
+                if current_thumb is None:
+                    current_thumb = imgs[0].get("src", "")
                 thumbs = "".join(
                     f'<div class="gallery-thumb"><img src="{im.get("src", "")}" alt=""></div>' for im in imgs
                 )
@@ -617,20 +627,41 @@ def build_provision_tabs():
             elif node.get_text(strip=True):
                 current_parts.append(str(node))
         elif tag == "img":
-            current_parts.append(
-                f'<div class="gallery"><div class="gallery-thumb"><img src="{node.get("src", "")}" alt=""></div></div>'
-            )
+            src = node.get("src", "")
+            if current_thumb is None:
+                current_thumb = src
+            current_parts.append(f'<div class="gallery"><div class="gallery-thumb"><img src="{src}" alt=""></div></div>')
         elif tag == "p" and node.get_text(strip=True):
             current_parts.append(str(node))
-    if current_name:
-        categories.append((current_name, current_parts))
+    flush()
 
-    tabs = []
-    for i, (name, parts) in enumerate(categories):
+    # Nota: las 24 imagenes de esta pagina apuntan todas a un subdominio
+    # viejo de la UNSL (webfcfmyn.unsl.edu.ar) que ya no resuelve, asi que
+    # un thumbnail-preview siempre saldria vacio. En cambio, cada cajita usa
+    # un icono/monograma (mismo patron que las tarjetas de Areas), confiable
+    # porque no depende de ninguna imagen externa.
+    nav_btns = []
+    panels = []
+    for i, (name, thumb, parts) in enumerate(categories):
         tab_id = f"prov-{i}"
+        active = " active" if i == 0 else ""
+        monogram = "".join(w[0] for w in name.split()[:2] if w[0].isalnum()).upper()[:2] or "·"
+        nav_btns.append(
+            f'<button class="{active.strip()}" data-tab="{tab_id}">'
+            f'<span class="card-icon">{escape(monogram)}</span>'
+            f'<span class="card-title">{escape(name)}</span>'
+            f"</button>"
+        )
         content = "".join(parts) or "<p>Más información próximamente.</p>"
-        tabs.append((tab_id, name, f'<div class="content-block">{content}</div>'))
-    return tabs_component(tabs, wrap_id="provision-tabs")
+        panels.append(
+            f'<div class="tab-panel card-detail{active}" id="{tab_id}">'
+            f"<h3>{escape(name)}</h3>{content}</div>"
+        )
+
+    return f"""<div class="tabs-wrap" id="provision-tabs">
+  <div class="tabs-nav card-tabs-nav">{"".join(nav_btns)}</div>
+  <div class="tab-panels">{"".join(panels)}</div>
+</div>"""
 
 
 # ---------------------------------------------------------------------------
@@ -638,14 +669,14 @@ def build_provision_tabs():
 # ---------------------------------------------------------------------------
 def build_servicios():
     desarrollo = strip_outer(PAGES["desarrollo-de-proyectos"]["content"])
-    provision_tabs = build_provision_tabs()
+    provision_cards = build_provision_cards()
     consultoria = strip_outer(PAGES["consultoria-y-experticia"]["content"])
     rea_cards = build_rea_cards()
     politicas = strip_outer(PAGES["recursos"]["content"])
 
     tabs = [
         ("desarrollo-de-proyectos", "Desarrollo de Proyectos", f'<div class="content-block">{desarrollo}</div>'),
-        ("provision-de-recursos-materiales", "Provisión de Recursos", provision_tabs),
+        ("provision-de-recursos-materiales", "Provisión de Recursos", provision_cards),
         ("consultoria-y-experticia", "Consultoría y experticia", f'<div class="content-block">{consultoria}</div>'),
         ("rea-utiles", "REA útiles", rea_cards),
         ("politicas-de-privacidad", "Políticas de privacidad", f'<div class="content-block">{politicas}</div>'),
