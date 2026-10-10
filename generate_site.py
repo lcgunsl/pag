@@ -96,7 +96,8 @@ def page_shell(title, active, body, description=""):
 <header class="site-header">
   <div class="container">
     <a class="brand" href="index.html">
-      <img src="wp-content/uploads/2017/05/Logo-LCG_Def.png" alt="LCG">
+      <svg class="lcg-mark" viewBox="160 80 408 364" role="img" aria-label="LCG"><g transform="matrix(0.60609244,0,0,0.67032967,137.55252,-14.056417)"><path class="g" d="M177.143,275.21936H445.71429V572.36221H177.14285Z"/><path class="g" d="M473,275.21936H696V672.3622l-223,-100z"/><path class="k" d="m50,175.21935 101.42857,100V672.3622L50,569.50503Z"/><path class="k" d="M82.857149,152.3622H442.85715L680,249.50507H177.143Z"/></g></svg>
+      <span class="brand-text"><span class="small">Laboratorio de</span><span class="big">Computación Gráfica</span></span>
     </a>
     <button class="menu-toggle" aria-label="Menú" onclick="document.querySelector('.main-nav').classList.toggle('open')">&#9776;</button>
     <nav class="main-nav">

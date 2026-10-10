@@ -54,9 +54,12 @@ ul{margin:0 0 1em;padding-left:1.2em;}
 .brand{display:flex;align-items:center;gap:12px;color:#fff;flex-shrink:0;}
 .brand:hover{text-decoration:none;}
 .brand img{height:40px;width:auto;display:block;}
+.brand .lcg-mark{height:36px;width:auto;display:block;}
+.brand .lcg-mark .k{fill:#f8f7f5;}
+.brand .lcg-mark .g{fill:#b7bec4;}
 .brand .brand-text{line-height:1.15;}
-.brand .brand-text .big{display:block;font-weight:700;font-size:1.05rem;}
-.brand .brand-text .small{display:block;font-size:.78rem;color:rgba(255,255,255,.7);}
+.brand .brand-text .big{display:block;font-weight:700;font-size:.88rem;}
+.brand .brand-text .small{display:block;font-size:.68rem;color:rgba(255,255,255,.7);}
 
 nav.main-nav{display:flex;align-items:center;gap:2px;flex-wrap:wrap;position:relative;}
 nav.main-nav > a,
