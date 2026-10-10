@@ -14,6 +14,12 @@ POSTS = DATA["posts"]
 SITE_NAME = "Laboratorio de Computación Gráfica"
 SITE_SHORT = "LCG - UNSL"
 
+# Ilustracion del hero: un mismo objeto 3D en 4 etapas del pipeline de
+# render (puntos / poligonos / sombreado / material). Generada por codigo
+# (ver scripts/make_hero_art.py), se inserta inline para que escale nitida.
+_hero_art_path = ROOT / "assets" / "hero-render.svg"
+HERO_ART = _hero_art_path.read_text(encoding="utf-8") if _hero_art_path.exists() else ""
+
 # ---------------------------------------------------------------------------
 # Navegacion (SIN la seccion "modelos", explicitamente excluida por pedido)
 # ---------------------------------------------------------------------------
@@ -167,11 +173,16 @@ def build_index():
 
     body = f"""
 <section class="hero">
-  <div class="container">
-    <h1>{SITE_NAME}</h1>
-    <p>Investigación y desarrollo en Realidad Virtual, Realidad Aumentada e Interacción Natural Humano-Computadora. Sede del primer sistema de visualización tipo CAVE del país.</p>
-    <a class="btn" href="servicios.html">Conocer nuestros servicios</a>
-    <a class="btn btn-outline" href="equipo.html">Conocer al equipo</a>
+  <div class="container hero-flex">
+    <div class="hero-text">
+      <h1>{SITE_NAME}</h1>
+      <p>Investigación y desarrollo en Realidad Virtual, Realidad Aumentada e Interacción Natural Humano-Computadora. Sede del primer sistema de visualización tipo CAVE del país.</p>
+      <a class="btn" href="servicios.html">Conocer nuestros servicios</a>
+      <a class="btn btn-outline" href="equipo.html">Conocer al equipo</a>
+    </div>
+    <div class="hero-art" aria-hidden="false">
+      {HERO_ART}
+    </div>
   </div>
 </section>
 

@@ -85,9 +85,17 @@ nav.main-nav .sub-menu a:hover{background:var(--accent-light);color:var(--accent
   background:radial-gradient(circle at 85% 20%, rgba(221,186,154,.4), transparent 55%);
 }
 .hero .container{position:relative;}
+.hero-flex{display:flex;align-items:center;gap:48px;justify-content:space-between;}
+.hero-text{flex:1 1 480px;min-width:0;}
 .hero h1{font-size:2.4rem;margin-bottom:.4em;}
 .hero p{font-size:1.15rem;max-width:640px;color:rgba(255,255,255,.92);}
 .hero .btn{margin-top:1em;}
+.hero-art{flex:0 0 300px;width:300px;max-width:38vw;}
+.hero-art svg{display:block;width:100%;height:auto;}
+@media (max-width:860px){
+  .hero-flex{flex-direction:column;align-items:flex-start;gap:32px;}
+  .hero-art{max-width:260px;width:100%;align-self:center;}
+}
 
 .btn{
   display:inline-block;padding:10px 22px;border-radius:999px;background:var(--highlight);color:var(--highlight-text);
