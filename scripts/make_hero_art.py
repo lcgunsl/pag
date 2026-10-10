@@ -341,11 +341,27 @@ quadrants = [
     (HALF, HALF, HALF, HALF, layer_mat, "MATERIAL", (TOTAL - 14, TOTAL - 16, "end")),
 ]
 
+# Las capas "lisas" (TEXTURA, MATERIAL) son triangulos planos: por mas que
+# no tengan borde, cada uno tiene un color uniforme y se sigue notando la
+# faceta contra la del vecino. Un sombreado Gouraud real (interpolar color
+# por pixel entre los 3 vertices) no es viable en SVG puro, asi que se
+# simula con un desenfoque gaussiano suave sobre esa capa: funde los
+# limites entre triangulos y el ojo lee una superficie continua, como un
+# sombreado suavizado. Solo se aplica a la capa que lo necesita (TEXTURA);
+# PUNTOS y POLIGONOS deben quedar nitidos.
+SMOOTH_FILTER_ID = "smoothShade"
+smooth_filter_def = (
+    f'<filter id="{SMOOTH_FILTER_ID}" x="-20%" y="-20%" width="140%" height="140%">'
+    f'<feGaussianBlur stdDeviation="2.1"/>'
+    f'</filter>'
+)
+
 clip_defs, quad_groups, labels = [], [], []
 for idx, (qx, qy, qw, qh, layer, label, (lx, ly, anchor)) in enumerate(quadrants):
     clip_id = f"q{idx}"
     clip_defs.append(f'<clipPath id="{clip_id}"><rect x="{qx}" y="{qy}" width="{qw}" height="{qh}"/></clipPath>')
-    quad_groups.append(f'<g clip-path="url(#{clip_id})">\n    {layer}\n  </g>')
+    inner = f'<g filter="url(#{SMOOTH_FILTER_ID})">\n    {layer}\n  </g>' if label == "TEXTURA" else layer
+    quad_groups.append(f'<g clip-path="url(#{clip_id})">\n    {inner}\n  </g>')
     labels.append(
         f'<text x="{lx}" y="{ly}" text-anchor="{anchor}" '
         f'font-family="Inter, \'Segoe UI\', sans-serif" font-size="12" font-weight="700" '
@@ -356,6 +372,7 @@ svg = f'''<svg viewBox="0 0 {TOTAL} {TOTAL}" xmlns="http://www.w3.org/2000/svg" 
      aria-label="La tetera de Utah partida en cuatro cuadrantes, cada uno en una etapa distinta del pipeline de render: puntos, poligonos, textura espejada y material metalico">
   <defs>
     {chr(10).join("    " + d for d in clip_defs)}
+    {smooth_filter_def}
   </defs>
   <rect x="0" y="0" width="{TOTAL}" height="{TOTAL}" rx="18" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.14)"/>
   <clipPath id="canvasClip"><rect x="2" y="2" width="{TOTAL-4}" height="{TOTAL-4}" rx="16"/></clipPath>

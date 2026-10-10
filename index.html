@@ -58,6 +58,7 @@ document.addEventListener("error", function (e) {
     <clipPath id="q1"><rect x="190.0" y="0" width="190.0" height="190.0"/></clipPath>
     <clipPath id="q2"><rect x="0" y="190.0" width="190.0" height="190.0"/></clipPath>
     <clipPath id="q3"><rect x="190.0" y="190.0" width="190.0" height="190.0"/></clipPath>
+    <filter id="smoothShade" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.1"/></filter>
   </defs>
   <rect x="0" y="0" width="380" height="380" rx="18" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.14)"/>
   <clipPath id="canvasClip"><rect x="2" y="2" width="376" height="376" rx="16"/></clipPath>
@@ -1695,6 +1696,7 @@ document.addEventListener("error", function (e) {
     <line x1="107.7" y1="210.8" x2="107.2" y2="193.1" stroke="#000" stroke-width="0.7" opacity=".8"/>
   </g>
   <g clip-path="url(#q2)">
+    <g filter="url(#smoothShade)">
     <polygon points="60.8,192.8 61.1,186.7 57.0,185.7" fill="#9191a3" stroke="#9191a3" stroke-width=".6"/>
     <polygon points="60.8,192.8 57.0,185.7 56.6,193.3" fill="#9191a3" stroke="#9191a3" stroke-width=".6"/>
     <polygon points="56.6,193.3 57.0,185.7 53.9,184.7" fill="#7b7e8e" stroke="#7b7e8e" stroke-width=".6"/>
@@ -2322,6 +2324,7 @@ document.addEventListener("error", function (e) {
     <polygon points="177.7,209.2 179.0,192.5 159.5,191.4" fill="#8d8e9e" stroke="#8d8e9e" stroke-width=".6"/>
     <polygon points="196.7,211.0 198.4,194.3 179.0,192.5" fill="#868798" stroke="#868798" stroke-width=".6"/>
     <polygon points="196.7,211.0 179.0,192.5 177.7,209.2" fill="#868798" stroke="#868798" stroke-width=".6"/>
+  </g>
   </g>
   <g clip-path="url(#q3)">
     <polygon points="60.8,192.8 61.1,186.7 57.0,185.7" fill="#adb5bb" stroke="#adb5bb" stroke-width=".6"/>
