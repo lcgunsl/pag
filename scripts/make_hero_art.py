@@ -255,14 +255,24 @@ def shade_matte(diffuse):
     return lerp(AZUL, (150, 170, 180), (diffuse - 0.5) / 0.5)
 
 def shade_metal(diffuse, spec, rim):
-    # metal/espejo pulido: base plateada neutra (nunca cae a negro puro,
-    # un metal real siempre refleja algo del entorno) + reflejo calido en
-    # los bordes (rim, como si reflejara el degrade del header) + brillos
-    # especulares muy marcados casi blancos -> efecto "chrome teapot"
+    # metal/espejo pulido, tono claro: base plateada neutra (nunca cae a
+    # negro puro, un metal real siempre refleja algo del entorno) +
+    # reflejo calido en los bordes (rim, como si reflejara el degrade del
+    # header) + brillos especulares muy marcados casi blancos
     diffuse_eff = 0.35 + 0.65 * diffuse
     base = lerp(AZUL_D, PLATA, diffuse_eff)
     base = add_color(base, CALIZA, rim * 0.8)
     base = add_color(base, BLANCO, min(1.0, spec * 2.2))
+    return base
+
+def shade_mirror(diffuse, spec, rim):
+    # espejo frio (tono lila/azul en vez del plateado calido de MATERIAL,
+    # para que ambos cuadrantes lisos se distingan entre si) -- misma logica
+    # de "nunca negro puro + rim + brillos duros"
+    diffuse_eff = 0.30 + 0.70 * diffuse
+    base = lerp(AZUL_D, LILA, diffuse_eff)
+    base = add_color(base, LILA, rim * 0.7)
+    base = add_color(base, BLANCO, min(1.0, spec * 2.4))
     return base
 
 # ---------------------------------------------------------------------------
@@ -277,17 +287,16 @@ CX, CY = TOTAL / 2, TOTAL / 2
 def to_svg_xy(p):
     return (CX + (p[0] - bbox_cx) * SCALE, CY - (p[1] - bbox_cy) * SCALE)
 
-# ---- Capa de puntos (vertices) ----
+# ---- Capa de puntos (vertices), siempre negro ----
 pts_svg = []
 for i, v in enumerate(verts):
     x, y = to_svg_xy(proj[i])
     depth_t = (v[2] + 1.6) / 3.2
     r = 0.7 + depth_t * 0.7  # chiquitos: que se lea como nube de puntos, no como bolitas
-    col = to_hex(lerp(AZUL_D, LILA, depth_t))
-    pts_svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{col}"/>')
+    pts_svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="#000" opacity="{0.55 + depth_t * 0.45:.2f}"/>')
 layer_pts = "\n    ".join(pts_svg)
 
-# ---- Capa de wireframe (aristas) ----
+# ---- Capa de wireframe (aristas), siempre negro ----
 edges = set()
 for fc, depth, diffuse, spec, rim in fdata:
     a, b, c = fc
@@ -297,22 +306,22 @@ line_svg = []
 for a, b in edges:
     xa, ya = to_svg_xy(proj[a])
     xb, yb = to_svg_xy(proj[b])
-    line_svg.append(f'<line x1="{xa:.1f}" y1="{ya:.1f}" x2="{xb:.1f}" y2="{yb:.1f}" stroke="{to_hex(LILA)}" stroke-width="0.8" opacity=".85"/>')
+    line_svg.append(f'<line x1="{xa:.1f}" y1="{ya:.1f}" x2="{xb:.1f}" y2="{yb:.1f}" stroke="#000" stroke-width="0.7" opacity=".8"/>')
 layer_wire = "\n    ".join(line_svg)
 
-# ---- Capa de sombreado solido, mate (sin textura) ----
-poly_mono = []
+# ---- Capa "textura": espejo frio, liso -- sin trazo de contorno visible,
+# igual tecnica que MATERIAL (el stroke va del mismo color que el relleno,
+# solo para tapar costuras de antialiasing entre triangulos vecinos) para
+# que no se note la malla de poligonos por debajo ----
+poly_tex = []
 for fc, depth, diffuse, spec, rim in fdata:
     pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in fc)
-    col = to_hex(shade_matte(diffuse))
-    poly_mono.append(f'<polygon points="{pts}" fill="{col}" stroke="{to_hex(AZUL_D)}" stroke-width=".35"/>')
-layer_shaded = "\n    ".join(poly_mono)
+    col = to_hex(shade_mirror(diffuse, spec, rim))
+    poly_tex.append(f'<polygon points="{pts}" fill="{col}" stroke="{col}" stroke-width=".6"/>')
+layer_tex = "\n    ".join(poly_tex)
 
-# ---- Capa de material: metal/espejo con brillos especulares duros ----
-# Sin trazo de contorno -- una superficie con material no deberia mostrar
-# los poligonos de la malla, tiene que leerse como una pieza continua.
-# El stroke va del mismo color que el relleno (no transparente) solo para
-# tapar las costuras de antialiasing entre triangulos vecinos.
+# ---- Capa de material: metal/espejo claro, con brillos especulares duros,
+# tambien liso (mismo truco de stroke = fill) ----
 poly_mat = []
 for fc, depth, diffuse, spec, rim in fdata:
     pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in fc)
@@ -328,7 +337,7 @@ HALF = TOTAL / 2
 quadrants = [
     (0, 0, HALF, HALF, layer_pts, "PUNTOS", (14, 24, "start")),
     (HALF, 0, HALF, HALF, layer_wire, "POLÍGONOS", (TOTAL - 14, 24, "end")),
-    (0, HALF, HALF, HALF, layer_shaded, "SOMBREADO", (14, TOTAL - 16, "start")),
+    (0, HALF, HALF, HALF, layer_tex, "TEXTURA", (14, TOTAL - 16, "start")),
     (HALF, HALF, HALF, HALF, layer_mat, "MATERIAL", (TOTAL - 14, TOTAL - 16, "end")),
 ]
 
@@ -344,7 +353,7 @@ for idx, (qx, qy, qw, qh, layer, label, (lx, ly, anchor)) in enumerate(quadrants
     )
 
 svg = f'''<svg viewBox="0 0 {TOTAL} {TOTAL}" xmlns="http://www.w3.org/2000/svg" role="img"
-     aria-label="La tetera de Utah partida en cuatro cuadrantes, cada uno en una etapa distinta del pipeline de render: puntos, poligonos, sombreado mate y material metalico">
+     aria-label="La tetera de Utah partida en cuatro cuadrantes, cada uno en una etapa distinta del pipeline de render: puntos, poligonos, textura espejada y material metalico">
   <defs>
     {chr(10).join("    " + d for d in clip_defs)}
   </defs>
