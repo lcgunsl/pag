@@ -1,8 +1,11 @@
 """
-Genera una ilustracion SVG propia para el hero de la home: un mismo objeto 3D
-(un icosaedro subdividido, esilo "low-poly") mostrado en 4 cuadrantes que
-recorren el pipeline de render: puntos -> wireframe/poligonos -> sombreado ->
-material/textura. Pensado para el LCG (Laboratorio de Computacion Grafica).
+Genera una ilustracion SVG propia para el hero de la home: UNA sola imagen
+de un objeto 3D (un icosaedro subdividido, estilo "low-poly"), partida en
+4 cuadrantes -- no 4 dibujos separados, sino el mismo render recortado en
+4 partes, cada una mostrando una etapa distinta del pipeline: puntos ->
+wireframe/poligonos -> sombreado -> material/textura. Pensado para el LCG
+(Laboratorio de Computacion Grafica), inspirado en las clasicas laminas de
+"mismo objeto, distintas etapas de render" que se usan en catedras de CG.
 
 No usa fotos ni assets externos: todo se calcula (proyeccion 3D simple +
 pintado por profundidad) y se escribe como SVG vectorial.
@@ -120,34 +123,34 @@ def shade_color(base, shade, dark=AZUL_D, light=CALIZA):
         return lerp(dark, base, shade / 0.5)
     return lerp(base, light, (shade - 0.5) / 0.5)
 
-# ---------- 6. Helpers SVG ----------
-VB = 220  # viewBox de cada cuadrante (cuadrado)
-SCALE = 82
+# ---------- 6. Proyectar a coordenadas del UNICO lienzo ----------
+# A diferencia de la version anterior (4 cuadros separados), aca el objeto
+# se dibuja UNA sola vez, a tamano completo, centrado en un lienzo cuadrado
+# compartido; lo que cambia por cuadrante es solo el "clip" (que porcion del
+# dibujo se deja ver) y el estilo de render que se usa para esa porcion.
+TOTAL = 380
+SCALE = 235
+# Centrar el objeto en el lienzo segun su propio bounding box proyectado
+# (no en el origen 3D), para que el cruce de los 4 cuadrantes caiga
+# realmente en el medio visual de la figura.
+bbox_cx = (proj[:, 0].max() + proj[:, 0].min()) / 2
+bbox_cy = (proj[:, 1].max() + proj[:, 1].min()) / 2
+CX, CY = TOTAL / 2, TOTAL / 2
 
 def to_svg_xy(p):
-    return (VB / 2 + p[0] * SCALE, VB / 2 - p[1] * SCALE)
+    return (CX + (p[0] - bbox_cx) * SCALE, CY - (p[1] - bbox_cy) * SCALE)
 
-def panel(cx, cy, size, content, label):
-    s = size / VB
-    return f'''<rect x="{cx}" y="{cy}" width="{size}" height="{size}" rx="10" fill="rgba(0,0,0,.14)"/>
-  <g transform="translate({cx},{cy}) scale({s})" clip-path="url(#cellClip)">
-    {content}
-  </g>
-  <text x="{cx + size/2}" y="{cy + size - 10}" text-anchor="middle"
-        font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600"
-        fill="rgba(255,255,255,.82)" letter-spacing=".02em">{label}</text>'''
-
-# ---- Cuadrante A: puntos (vertices) ----
+# ---- Capa de puntos (vertices) ----
 pts_svg = []
 for i, v in enumerate(verts):
     x, y = to_svg_xy(proj[i])
     depth_t = (v[2] + 1) / 2
-    r = 2.0 + depth_t * 2.0
+    r = 3.4 + depth_t * 3.4
     col = to_hex(lerp(AZUL_D, LILA, depth_t))
     pts_svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{col}"/>')
-content_pts = "\n    ".join(pts_svg)
+layer_pts = "\n    ".join(pts_svg)
 
-# ---- Cuadrante B: wireframe (aristas) ----
+# ---- Capa de wireframe (aristas) ----
 edges = set()
 for f, depth, shade in fdata:
     a, b, c = f
@@ -157,52 +160,62 @@ line_svg = []
 for a, b in edges:
     xa, ya = to_svg_xy(proj[a])
     xb, yb = to_svg_xy(proj[b])
-    line_svg.append(f'<line x1="{xa:.1f}" y1="{ya:.1f}" x2="{xb:.1f}" y2="{yb:.1f}" stroke="{to_hex(LILA)}" stroke-width="1.1" opacity=".85"/>')
-content_wire = "\n    ".join(line_svg)
+    line_svg.append(f'<line x1="{xa:.1f}" y1="{ya:.1f}" x2="{xb:.1f}" y2="{yb:.1f}" stroke="{to_hex(LILA)}" stroke-width="1.3" opacity=".9"/>')
+layer_wire = "\n    ".join(line_svg)
 
-# ---- Cuadrante C: sombreado solido (mono, sin textura) ----
+# ---- Capa de sombreado solido (mono, sin textura) ----
 poly_mono = []
 for f, depth, shade in fdata:
     pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in f)
     col = to_hex(shade_color(AZUL, shade, dark=AZUL_D, light=(150, 170, 180)))
     poly_mono.append(f'<polygon points="{pts}" fill="{col}" stroke="{to_hex(AZUL_D)}" stroke-width=".4"/>')
-content_shaded = "\n    ".join(poly_mono)
+layer_shaded = "\n    ".join(poly_mono)
 
-# ---- Cuadrante D: material/textura (paleta completa + brillo) ----
+# ---- Capa de material/textura (paleta completa + brillo) ----
 poly_mat = []
 for f, depth, shade in fdata:
     pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in f)
     col = to_hex(shade_color(AZUL, shade, dark=AZUL_D, light=CALIZA))
     poly_mat.append(f'<polygon points="{pts}" fill="{col}" stroke="rgba(31,45,53,.25)" stroke-width=".4"/>')
-content_mat = "\n    ".join(poly_mat)
+layer_mat = "\n    ".join(poly_mat)
 
-# ---------- 7. Armar el SVG final (2x2) ----------
-PAD = 14
-CELL = 168
-GAP = 14
-TOTAL = PAD * 2 + CELL * 2 + GAP
+# ---------- 7. Armar el SVG final: 1 imagen, recortada en 4 cuadrantes ----------
+HALF = TOTAL / 2
 
-cells = [
-    (PAD, PAD, content_pts, "PUNTOS"),
-    (PAD + CELL + GAP, PAD, content_wire, "POLÍGONOS"),
-    (PAD, PAD + CELL + GAP, content_shaded, "SOMBREADO"),
-    (PAD + CELL + GAP, PAD + CELL + GAP, content_mat, "MATERIAL"),
+quadrants = [
+    # (x, y, w, h, capa, nombre de la etiqueta, anchor de la etiqueta)
+    (0, 0, HALF, HALF, layer_pts, "PUNTOS", (14, 24, "start")),
+    (HALF, 0, HALF, HALF, layer_wire, "POLÍGONOS", (TOTAL - 14, 24, "end")),
+    (0, HALF, HALF, HALF, layer_shaded, "SOMBREADO", (14, TOTAL - 16, "start")),
+    (HALF, HALF, HALF, HALF, layer_mat, "MATERIAL", (TOTAL - 14, TOTAL - 16, "end")),
 ]
 
-panels_svg = "\n  ".join(panel(cx, cy, CELL, content, label) for cx, cy, content, label in cells)
-
-divider_x = PAD + CELL + GAP / 2
-divider_y = PAD + CELL + GAP / 2
+clip_defs = []
+quad_groups = []
+labels = []
+for idx, (qx, qy, qw, qh, layer, label, (lx, ly, anchor)) in enumerate(quadrants):
+    clip_id = f"q{idx}"
+    clip_defs.append(f'<clipPath id="{clip_id}"><rect x="{qx}" y="{qy}" width="{qw}" height="{qh}"/></clipPath>')
+    quad_groups.append(f'<g clip-path="url(#{clip_id})">\n    {layer}\n  </g>')
+    labels.append(
+        f'<text x="{lx}" y="{ly}" text-anchor="{anchor}" '
+        f'font-family="Inter, \'Segoe UI\', sans-serif" font-size="12" font-weight="700" '
+        f'letter-spacing=".06em" fill="rgba(255,255,255,.78)">{label}</text>'
+    )
 
 svg = f'''<svg viewBox="0 0 {TOTAL} {TOTAL}" xmlns="http://www.w3.org/2000/svg" role="img"
-     aria-label="Un mismo objeto 3D representado en cuatro etapas del pipeline de render: puntos, poligonos, sombreado y material">
+     aria-label="Un mismo objeto 3D partido en cuatro cuadrantes, cada uno en una etapa distinta del pipeline de render: puntos, poligonos, sombreado y material">
   <defs>
-    <clipPath id="cellClip"><rect x="0" y="0" width="{CELL}" height="{CELL}" rx="10"/></clipPath>
+    {chr(10).join("    " + d for d in clip_defs)}
   </defs>
   <rect x="0" y="0" width="{TOTAL}" height="{TOTAL}" rx="18" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.14)"/>
-  {panels_svg}
-  <line x1="{divider_x:.1f}" y1="{PAD}" x2="{divider_x:.1f}" y2="{TOTAL-PAD}" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
-  <line x1="{PAD}" y1="{divider_y:.1f}" x2="{TOTAL-PAD}" y2="{divider_y:.1f}" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+  <clipPath id="canvasClip"><rect x="2" y="2" width="{TOTAL-4}" height="{TOTAL-4}" rx="16"/></clipPath>
+  <g clip-path="url(#canvasClip)">
+    {chr(10).join("  " + g for g in quad_groups)}
+    <line x1="{HALF:.1f}" y1="2" x2="{HALF:.1f}" y2="{TOTAL-2}" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>
+    <line x1="2" y1="{HALF:.1f}" x2="{TOTAL-2}" y2="{HALF:.1f}" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>
+  </g>
+  {chr(10).join("  " + l for l in labels)}
 </svg>'''
 
 with open("/home/claude/pag/assets/hero-render.svg", "w") as fh:
