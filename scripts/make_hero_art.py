@@ -84,6 +84,23 @@ def make_tube(path_pts, radii, n_tube=8):
     return verts, faces, rings
 
 
+# Perfil del cuerpo + tapa (silueta clasica de tetera), usado tanto para
+# tornear el cuerpo como para saber a que radio esta su superficie a una
+# altura y dada -- asi el asa y el pico "sueldan" contra el cuerpo en vez
+# de quedar flotando con un hueco, como pasaba antes.
+BODY_PROFILE = [
+    (0.00, 0.00), (0.34, 0.02), (0.54, 0.09), (0.615, 0.22),
+    (0.63, 0.34), (0.60, 0.47), (0.52, 0.59), (0.43, 0.68),
+    (0.46, 0.715), (0.41, 0.755), (0.31, 0.80), (0.18, 0.885),
+    (0.07, 0.95), (0.00, 1.00),
+]
+
+def body_radius_at(y):
+    ys = [p[1] for p in BODY_PROFILE]
+    rs = [p[0] for p in BODY_PROFILE]
+    return float(np.interp(y, ys, rs))
+
+
 def build_teapot():
     all_verts = []
     all_faces = []
@@ -93,41 +110,50 @@ def build_teapot():
         all_verts.extend(vs)
         all_faces.extend([tuple(i + off for i in f) for f in fs])
 
-    # Cuerpo + tapa: perfil de torneado con la silueta clasica de tetera
-    body_profile = [
-        (0.00, 0.00), (0.34, 0.02), (0.54, 0.09), (0.615, 0.22),
-        (0.63, 0.34), (0.60, 0.47), (0.52, 0.59), (0.43, 0.68),
-        (0.46, 0.715), (0.41, 0.755), (0.31, 0.80), (0.18, 0.885),
-        (0.07, 0.95), (0.00, 1.00),
-    ]
-    add(*make_lathe(body_profile, n_seg=16))
+    # Cuerpo + tapa: perfil de torneado, bastante segmentado para que la
+    # nube de puntos y el wireframe se vean densos
+    add(*make_lathe(BODY_PROFILE, n_seg=28))
 
-    # Asa: arco de tubo del lado -X, opuesto al pico (como una tetera real)
-    n_h = 12
+    # Asa: arco de tubo del lado -X, opuesto al pico (como una tetera real).
+    # Los extremos se apoyan justo en la superficie del cuerpo (calculada
+    # con body_radius_at) y se hunden un poco hacia adentro para que no
+    # quede un hueco entre el asa y la panza.
+    n_h = 16
+    y0, y1 = 0.26, 0.76
+    r0, r1 = body_radius_at(y0), body_radius_at(y1)
     handle_pts, handle_r = [], []
     for i in range(n_h):
         t = i / (n_h - 1)
-        ang = np.pi * (0.12 + 0.76 * t)
-        y = 0.28 + 0.50 * t
-        x = -0.60 - 0.235 * np.sin(ang)
+        bulge = 0.30 * np.sin(np.pi * t)  # panza del asa, 0 en los extremos
+        base_r = r0 * (1 - t) + r1 * t
+        x = -(base_r * 0.9 + bulge)
+        y = y0 * (1 - t) + y1 * t
         handle_pts.append((x, y, 0.0))
-        handle_r.append(0.045)
-    vh, fh, _ = make_tube(handle_pts, handle_r, n_tube=8)
+        # mas grueso en los extremos (union) y mas fino en el medio
+        handle_r.append(0.055 - 0.02 * np.sin(np.pi * t))
+    vh, fh, _ = make_tube(handle_pts, handle_r, n_tube=10)
     add(vh, fh)
 
-    # Pico: tubo conico apuntando a +X, curvandose hacia arriba
-    n_s = 8
+    # Pico: tubo conico apuntando a +X, curvandose hacia arriba. Arranca
+    # metido dentro del cuerpo (en vez de justo en el borde) para que la
+    # union con la panza no deje costura.
+    n_s = 12
+    y_base = 0.50
+    r_base = body_radius_at(y_base)
     spout_pts, spout_r = [], []
     for i in range(n_s):
         t = i / (n_s - 1)
-        spout_pts.append((0.58 + 0.52 * t, 0.52 + 0.46 * t * t, 0.0))
-        spout_r.append(0.135 * (1 - t) + 0.025)
-    vs, fs, rings = make_tube(spout_pts, spout_r, n_tube=8)
+        x = (r_base * 0.85) + 0.55 * t
+        y = y_base + 0.46 * t * t
+        spout_pts.append((x, y, 0.0))
+        spout_r.append(0.14 * (1 - t) + 0.025)
+    vs, fs, rings = make_tube(spout_pts, spout_r, n_tube=10)
     tip_center = len(vs)
     vs.append(tuple(spout_pts[-1]))
     last_ring = rings[-1]
-    for j in range(8):
-        j2 = (j + 1) % 8
+    n_tube_spout = 10
+    for j in range(n_tube_spout):
+        j2 = (j + 1) % n_tube_spout
         fs.append((last_ring[j], last_ring[j2], tip_center))
     add(vs, fs)
 
