@@ -84,23 +84,6 @@ def make_tube(path_pts, radii, n_tube=8):
     return verts, faces, rings
 
 
-# Perfil del cuerpo + tapa (silueta clasica de tetera), usado tanto para
-# tornear el cuerpo como para saber a que radio esta su superficie a una
-# altura y dada -- asi el asa y el pico "sueldan" contra el cuerpo en vez
-# de quedar flotando con un hueco, como pasaba antes.
-BODY_PROFILE = [
-    (0.00, 0.00), (0.34, 0.02), (0.54, 0.09), (0.615, 0.22),
-    (0.63, 0.34), (0.60, 0.47), (0.52, 0.59), (0.43, 0.68),
-    (0.46, 0.715), (0.41, 0.755), (0.31, 0.80), (0.18, 0.885),
-    (0.07, 0.95), (0.00, 1.00),
-]
-
-def body_radius_at(y):
-    ys = [p[1] for p in BODY_PROFILE]
-    rs = [p[0] for p in BODY_PROFILE]
-    return float(np.interp(y, ys, rs))
-
-
 def build_teapot():
     all_verts = []
     all_faces = []
@@ -110,50 +93,41 @@ def build_teapot():
         all_verts.extend(vs)
         all_faces.extend([tuple(i + off for i in f) for f in fs])
 
-    # Cuerpo + tapa: perfil de torneado, bastante segmentado para que la
-    # nube de puntos y el wireframe se vean densos
-    add(*make_lathe(BODY_PROFILE, n_seg=28))
+    # Cuerpo + tapa: perfil de torneado con la silueta clasica de tetera
+    body_profile = [
+        (0.00, 0.00), (0.34, 0.02), (0.54, 0.09), (0.615, 0.22),
+        (0.63, 0.34), (0.60, 0.47), (0.52, 0.59), (0.43, 0.68),
+        (0.46, 0.715), (0.41, 0.755), (0.31, 0.80), (0.18, 0.885),
+        (0.07, 0.95), (0.00, 1.00),
+    ]
+    add(*make_lathe(body_profile, n_seg=16))
 
-    # Asa: arco de tubo del lado -X, opuesto al pico (como una tetera real).
-    # Los extremos se apoyan justo en la superficie del cuerpo (calculada
-    # con body_radius_at) y se hunden un poco hacia adentro para que no
-    # quede un hueco entre el asa y la panza.
-    n_h = 16
-    y0, y1 = 0.26, 0.76
-    r0, r1 = body_radius_at(y0), body_radius_at(y1)
+    # Asa: arco de tubo del lado -X, opuesto al pico (como una tetera real)
+    n_h = 12
     handle_pts, handle_r = [], []
     for i in range(n_h):
         t = i / (n_h - 1)
-        bulge = 0.30 * np.sin(np.pi * t)  # panza del asa, 0 en los extremos
-        base_r = r0 * (1 - t) + r1 * t
-        x = -(base_r * 0.9 + bulge)
-        y = y0 * (1 - t) + y1 * t
+        ang = np.pi * (0.12 + 0.76 * t)
+        y = 0.28 + 0.50 * t
+        x = -0.60 - 0.235 * np.sin(ang)
         handle_pts.append((x, y, 0.0))
-        # mas grueso en los extremos (union) y mas fino en el medio
-        handle_r.append(0.055 - 0.02 * np.sin(np.pi * t))
-    vh, fh, _ = make_tube(handle_pts, handle_r, n_tube=10)
+        handle_r.append(0.045)
+    vh, fh, _ = make_tube(handle_pts, handle_r, n_tube=8)
     add(vh, fh)
 
-    # Pico: tubo conico apuntando a +X, curvandose hacia arriba. Arranca
-    # metido dentro del cuerpo (en vez de justo en el borde) para que la
-    # union con la panza no deje costura.
-    n_s = 12
-    y_base = 0.50
-    r_base = body_radius_at(y_base)
+    # Pico: tubo conico apuntando a +X, curvandose hacia arriba
+    n_s = 8
     spout_pts, spout_r = [], []
     for i in range(n_s):
         t = i / (n_s - 1)
-        x = (r_base * 0.85) + 0.55 * t
-        y = y_base + 0.46 * t * t
-        spout_pts.append((x, y, 0.0))
-        spout_r.append(0.14 * (1 - t) + 0.025)
-    vs, fs, rings = make_tube(spout_pts, spout_r, n_tube=10)
+        spout_pts.append((0.58 + 0.52 * t, 0.52 + 0.46 * t * t, 0.0))
+        spout_r.append(0.135 * (1 - t) + 0.025)
+    vs, fs, rings = make_tube(spout_pts, spout_r, n_tube=8)
     tip_center = len(vs)
     vs.append(tuple(spout_pts[-1]))
     last_ring = rings[-1]
-    n_tube_spout = 10
-    for j in range(n_tube_spout):
-        j2 = (j + 1) % n_tube_spout
+    for j in range(8):
+        j2 = (j + 1) % 8
         fs.append((last_ring[j], last_ring[j2], tip_center))
     add(vs, fs)
 
@@ -255,10 +229,10 @@ def shade_matte(diffuse):
     return lerp(AZUL, (150, 170, 180), (diffuse - 0.5) / 0.5)
 
 def shade_metal(diffuse, spec, rim):
-    # metal/espejo pulido, tono claro: base plateada neutra (nunca cae a
-    # negro puro, un metal real siempre refleja algo del entorno) +
-    # reflejo calido en los bordes (rim, como si reflejara el degrade del
-    # header) + brillos especulares muy marcados casi blancos
+    # metal/espejo pulido: base plateada neutra (nunca cae a negro puro,
+    # un metal real siempre refleja algo del entorno) + reflejo calido en
+    # los bordes (rim, como si reflejara el degrade del header) + brillos
+    # especulares muy marcados casi blancos -> efecto "chrome teapot"
     diffuse_eff = 0.35 + 0.65 * diffuse
     base = lerp(AZUL_D, PLATA, diffuse_eff)
     base = add_color(base, CALIZA, rim * 0.8)
@@ -277,16 +251,17 @@ CX, CY = TOTAL / 2, TOTAL / 2
 def to_svg_xy(p):
     return (CX + (p[0] - bbox_cx) * SCALE, CY - (p[1] - bbox_cy) * SCALE)
 
-# ---- Capa de puntos (vertices), siempre negro ----
+# ---- Capa de puntos (vertices) ----
 pts_svg = []
 for i, v in enumerate(verts):
     x, y = to_svg_xy(proj[i])
     depth_t = (v[2] + 1.6) / 3.2
-    r = 0.7 + depth_t * 0.7  # chiquitos: que se lea como nube de puntos, no como bolitas
-    pts_svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="#000" opacity="{0.55 + depth_t * 0.45:.2f}"/>')
+    r = 1.6 + depth_t * 1.6
+    col = to_hex(lerp(AZUL_D, LILA, depth_t))
+    pts_svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{col}"/>')
 layer_pts = "\n    ".join(pts_svg)
 
-# ---- Capa de wireframe (aristas), siempre negro ----
+# ---- Capa de wireframe (aristas) ----
 edges = set()
 for fc, depth, diffuse, spec, rim in fdata:
     a, b, c = fc
@@ -296,67 +271,42 @@ line_svg = []
 for a, b in edges:
     xa, ya = to_svg_xy(proj[a])
     xb, yb = to_svg_xy(proj[b])
-    line_svg.append(f'<line x1="{xa:.1f}" y1="{ya:.1f}" x2="{xb:.1f}" y2="{yb:.1f}" stroke="#000" stroke-width="0.7" opacity=".8"/>')
+    line_svg.append(f'<line x1="{xa:.1f}" y1="{ya:.1f}" x2="{xb:.1f}" y2="{yb:.1f}" stroke="{to_hex(LILA)}" stroke-width="0.8" opacity=".85"/>')
 layer_wire = "\n    ".join(line_svg)
 
-# ---- Capa "realista": material + brillos especulares, lisa (sin trazo de
-# contorno visible -- el stroke va del mismo color que el relleno, solo
-# para tapar costuras de antialiasing entre triangulos vecinos) ----
-poly_real = []
-for fc, depth, diffuse, spec, rim in fdata:
-    pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in fc)
-    col = to_hex(shade_metal(diffuse, spec, rim))
-    poly_real.append(f'<polygon points="{pts}" fill="{col}" stroke="{col}" stroke-width=".6"/>')
-layer_real = "\n    ".join(poly_real)
-
-# ---- Capa "pintado": mismo sombreado pero sin brillos de material (solo
-# luz difusa, sin especular) -- tambien lisa ----
-poly_paint = []
+# ---- Capa de sombreado solido, mate (sin textura) ----
+poly_mono = []
 for fc, depth, diffuse, spec, rim in fdata:
     pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in fc)
     col = to_hex(shade_matte(diffuse))
-    poly_paint.append(f'<polygon points="{pts}" fill="{col}" stroke="{col}" stroke-width=".6"/>')
-layer_paint = "\n    ".join(poly_paint)
+    poly_mono.append(f'<polygon points="{pts}" fill="{col}" stroke="{to_hex(AZUL_D)}" stroke-width=".35"/>')
+layer_shaded = "\n    ".join(poly_mono)
+
+# ---- Capa de material: metal/espejo con brillos especulares duros ----
+poly_mat = []
+for fc, depth, diffuse, spec, rim in fdata:
+    pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in fc)
+    col = to_hex(shade_metal(diffuse, spec, rim))
+    poly_mat.append(f'<polygon points="{pts}" fill="{col}" stroke="rgba(20,28,33,.4)" stroke-width=".3"/>')
+layer_mat = "\n    ".join(poly_mat)
 
 # ---------------------------------------------------------------------------
 # 7. Armar el SVG final: 1 imagen, recortada en 4 cuadrantes
-#
-# La idea es ir "descifrando" el render de arriba-izq a abajo-derecha:
-# 1) arriba-izq: el modelo terminado, con material/textura lo mas realista
-#    posible; 2) arriba-der: le sacamos el material pero sigue pintado,
-#    sin verse los poligonos; 3) abajo-izq: se va el pintado y aparecen los
-#    poligonos (wireframe); 4) abajo-der: solo la nube de puntos de la malla.
 # ---------------------------------------------------------------------------
 HALF = TOTAL / 2
 
 quadrants = [
-    (0, 0, HALF, HALF, layer_real, "TEXTURA", (14, 24, "start")),
-    (HALF, 0, HALF, HALF, layer_paint, "SOMBREADO", (TOTAL - 14, 24, "end")),
-    (0, HALF, HALF, HALF, layer_wire, "POLÍGONOS", (14, TOTAL - 16, "start")),
-    (HALF, HALF, HALF, HALF, layer_pts, "PUNTOS", (TOTAL - 14, TOTAL - 16, "end")),
+    (0, 0, HALF, HALF, layer_pts, "PUNTOS", (14, 24, "start")),
+    (HALF, 0, HALF, HALF, layer_wire, "POLÍGONOS", (TOTAL - 14, 24, "end")),
+    (0, HALF, HALF, HALF, layer_shaded, "SOMBREADO", (14, TOTAL - 16, "start")),
+    (HALF, HALF, HALF, HALF, layer_mat, "MATERIAL", (TOTAL - 14, TOTAL - 16, "end")),
 ]
-
-# Las capas "lisas" (TEXTURA, SOMBREADO) son triangulos planos: por mas que
-# no tengan borde, cada uno tiene un color uniforme y se sigue notando la
-# faceta contra la del vecino. Un sombreado Gouraud real (interpolar color
-# por pixel entre los 3 vertices) no es viable en SVG puro, asi que se
-# simula con un desenfoque gaussiano suave sobre esas dos capas: funde los
-# limites entre triangulos y el ojo lee una superficie continua. POLIGONOS
-# y PUNTOS deben quedar nitidos (son justamente los que muestran la malla).
-SMOOTH_FILTER_ID = "smoothShade"
-smooth_filter_def = (
-    f'<filter id="{SMOOTH_FILTER_ID}" x="-20%" y="-20%" width="140%" height="140%">'
-    f'<feGaussianBlur stdDeviation="2.1"/>'
-    f'</filter>'
-)
-SMOOTH_LABELS = {"TEXTURA", "SOMBREADO"}
 
 clip_defs, quad_groups, labels = [], [], []
 for idx, (qx, qy, qw, qh, layer, label, (lx, ly, anchor)) in enumerate(quadrants):
     clip_id = f"q{idx}"
     clip_defs.append(f'<clipPath id="{clip_id}"><rect x="{qx}" y="{qy}" width="{qw}" height="{qh}"/></clipPath>')
-    inner = f'<g filter="url(#{SMOOTH_FILTER_ID})">\n    {layer}\n  </g>' if label in SMOOTH_LABELS else layer
-    quad_groups.append(f'<g clip-path="url(#{clip_id})">\n    {inner}\n  </g>')
+    quad_groups.append(f'<g clip-path="url(#{clip_id})">\n    {layer}\n  </g>')
     labels.append(
         f'<text x="{lx}" y="{ly}" text-anchor="{anchor}" '
         f'font-family="Inter, \'Segoe UI\', sans-serif" font-size="12" font-weight="700" '
@@ -364,10 +314,9 @@ for idx, (qx, qy, qw, qh, layer, label, (lx, ly, anchor)) in enumerate(quadrants
     )
 
 svg = f'''<svg viewBox="0 0 {TOTAL} {TOTAL}" xmlns="http://www.w3.org/2000/svg" role="img"
-     aria-label="La tetera de Utah partida en cuatro cuadrantes que van descifrando el render: arriba-izquierda con textura y material realista, arriba-derecha pintado sin textura, abajo-izquierda los poligonos, abajo-derecha la nube de puntos">
+     aria-label="La tetera de Utah partida en cuatro cuadrantes, cada uno en una etapa distinta del pipeline de render: puntos, poligonos, sombreado mate y material metalico">
   <defs>
     {chr(10).join("    " + d for d in clip_defs)}
-    {smooth_filter_def}
   </defs>
   <rect x="0" y="0" width="{TOTAL}" height="{TOTAL}" rx="18" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.14)"/>
   <clipPath id="canvasClip"><rect x="2" y="2" width="{TOTAL-4}" height="{TOTAL-4}" rx="16"/></clipPath>
