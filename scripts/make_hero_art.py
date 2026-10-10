@@ -265,16 +265,6 @@ def shade_metal(diffuse, spec, rim):
     base = add_color(base, BLANCO, min(1.0, spec * 2.2))
     return base
 
-def shade_mirror(diffuse, spec, rim):
-    # espejo frio (tono lila/azul en vez del plateado calido de MATERIAL,
-    # para que ambos cuadrantes lisos se distingan entre si) -- misma logica
-    # de "nunca negro puro + rim + brillos duros"
-    diffuse_eff = 0.30 + 0.70 * diffuse
-    base = lerp(AZUL_D, LILA, diffuse_eff)
-    base = add_color(base, LILA, rim * 0.7)
-    base = add_color(base, BLANCO, min(1.0, spec * 2.4))
-    return base
-
 # ---------------------------------------------------------------------------
 # 6. Proyectar a coordenadas del UNICO lienzo compartido
 # ---------------------------------------------------------------------------
@@ -309,58 +299,63 @@ for a, b in edges:
     line_svg.append(f'<line x1="{xa:.1f}" y1="{ya:.1f}" x2="{xb:.1f}" y2="{yb:.1f}" stroke="#000" stroke-width="0.7" opacity=".8"/>')
 layer_wire = "\n    ".join(line_svg)
 
-# ---- Capa "textura": espejo frio, liso -- sin trazo de contorno visible,
-# igual tecnica que MATERIAL (el stroke va del mismo color que el relleno,
-# solo para tapar costuras de antialiasing entre triangulos vecinos) para
-# que no se note la malla de poligonos por debajo ----
-poly_tex = []
-for fc, depth, diffuse, spec, rim in fdata:
-    pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in fc)
-    col = to_hex(shade_mirror(diffuse, spec, rim))
-    poly_tex.append(f'<polygon points="{pts}" fill="{col}" stroke="{col}" stroke-width=".6"/>')
-layer_tex = "\n    ".join(poly_tex)
-
-# ---- Capa de material: metal/espejo claro, con brillos especulares duros,
-# tambien liso (mismo truco de stroke = fill) ----
-poly_mat = []
+# ---- Capa "realista": material + brillos especulares, lisa (sin trazo de
+# contorno visible -- el stroke va del mismo color que el relleno, solo
+# para tapar costuras de antialiasing entre triangulos vecinos) ----
+poly_real = []
 for fc, depth, diffuse, spec, rim in fdata:
     pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in fc)
     col = to_hex(shade_metal(diffuse, spec, rim))
-    poly_mat.append(f'<polygon points="{pts}" fill="{col}" stroke="{col}" stroke-width=".6"/>')
-layer_mat = "\n    ".join(poly_mat)
+    poly_real.append(f'<polygon points="{pts}" fill="{col}" stroke="{col}" stroke-width=".6"/>')
+layer_real = "\n    ".join(poly_real)
+
+# ---- Capa "pintado": mismo sombreado pero sin brillos de material (solo
+# luz difusa, sin especular) -- tambien lisa ----
+poly_paint = []
+for fc, depth, diffuse, spec, rim in fdata:
+    pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in fc)
+    col = to_hex(shade_matte(diffuse))
+    poly_paint.append(f'<polygon points="{pts}" fill="{col}" stroke="{col}" stroke-width=".6"/>')
+layer_paint = "\n    ".join(poly_paint)
 
 # ---------------------------------------------------------------------------
 # 7. Armar el SVG final: 1 imagen, recortada en 4 cuadrantes
+#
+# La idea es ir "descifrando" el render de arriba-izq a abajo-derecha:
+# 1) arriba-izq: el modelo terminado, con material/textura lo mas realista
+#    posible; 2) arriba-der: le sacamos el material pero sigue pintado,
+#    sin verse los poligonos; 3) abajo-izq: se va el pintado y aparecen los
+#    poligonos (wireframe); 4) abajo-der: solo la nube de puntos de la malla.
 # ---------------------------------------------------------------------------
 HALF = TOTAL / 2
 
 quadrants = [
-    (0, 0, HALF, HALF, layer_pts, "PUNTOS", (14, 24, "start")),
-    (HALF, 0, HALF, HALF, layer_wire, "POLÍGONOS", (TOTAL - 14, 24, "end")),
-    (0, HALF, HALF, HALF, layer_tex, "TEXTURA", (14, TOTAL - 16, "start")),
-    (HALF, HALF, HALF, HALF, layer_mat, "MATERIAL", (TOTAL - 14, TOTAL - 16, "end")),
+    (0, 0, HALF, HALF, layer_real, "TEXTURA", (14, 24, "start")),
+    (HALF, 0, HALF, HALF, layer_paint, "SOMBREADO", (TOTAL - 14, 24, "end")),
+    (0, HALF, HALF, HALF, layer_wire, "POLÍGONOS", (14, TOTAL - 16, "start")),
+    (HALF, HALF, HALF, HALF, layer_pts, "PUNTOS", (TOTAL - 14, TOTAL - 16, "end")),
 ]
 
-# Las capas "lisas" (TEXTURA, MATERIAL) son triangulos planos: por mas que
+# Las capas "lisas" (TEXTURA, SOMBREADO) son triangulos planos: por mas que
 # no tengan borde, cada uno tiene un color uniforme y se sigue notando la
 # faceta contra la del vecino. Un sombreado Gouraud real (interpolar color
 # por pixel entre los 3 vertices) no es viable en SVG puro, asi que se
-# simula con un desenfoque gaussiano suave sobre esa capa: funde los
-# limites entre triangulos y el ojo lee una superficie continua, como un
-# sombreado suavizado. Solo se aplica a la capa que lo necesita (TEXTURA);
-# PUNTOS y POLIGONOS deben quedar nitidos.
+# simula con un desenfoque gaussiano suave sobre esas dos capas: funde los
+# limites entre triangulos y el ojo lee una superficie continua. POLIGONOS
+# y PUNTOS deben quedar nitidos (son justamente los que muestran la malla).
 SMOOTH_FILTER_ID = "smoothShade"
 smooth_filter_def = (
     f'<filter id="{SMOOTH_FILTER_ID}" x="-20%" y="-20%" width="140%" height="140%">'
     f'<feGaussianBlur stdDeviation="2.1"/>'
     f'</filter>'
 )
+SMOOTH_LABELS = {"TEXTURA", "SOMBREADO"}
 
 clip_defs, quad_groups, labels = [], [], []
 for idx, (qx, qy, qw, qh, layer, label, (lx, ly, anchor)) in enumerate(quadrants):
     clip_id = f"q{idx}"
     clip_defs.append(f'<clipPath id="{clip_id}"><rect x="{qx}" y="{qy}" width="{qw}" height="{qh}"/></clipPath>')
-    inner = f'<g filter="url(#{SMOOTH_FILTER_ID})">\n    {layer}\n  </g>' if label == "TEXTURA" else layer
+    inner = f'<g filter="url(#{SMOOTH_FILTER_ID})">\n    {layer}\n  </g>' if label in SMOOTH_LABELS else layer
     quad_groups.append(f'<g clip-path="url(#{clip_id})">\n    {inner}\n  </g>')
     labels.append(
         f'<text x="{lx}" y="{ly}" text-anchor="{anchor}" '
@@ -369,7 +364,7 @@ for idx, (qx, qy, qw, qh, layer, label, (lx, ly, anchor)) in enumerate(quadrants
     )
 
 svg = f'''<svg viewBox="0 0 {TOTAL} {TOTAL}" xmlns="http://www.w3.org/2000/svg" role="img"
-     aria-label="La tetera de Utah partida en cuatro cuadrantes, cada uno en una etapa distinta del pipeline de render: puntos, poligonos, textura espejada y material metalico">
+     aria-label="La tetera de Utah partida en cuatro cuadrantes que van descifrando el render: arriba-izquierda con textura y material realista, arriba-derecha pintado sin textura, abajo-izquierda los poligonos, abajo-derecha la nube de puntos">
   <defs>
     {chr(10).join("    " + d for d in clip_defs)}
     {smooth_filter_def}
