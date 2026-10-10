@@ -371,16 +371,130 @@ def build_publicaciones_tabs():
 
 
 # ---------------------------------------------------------------------------
+# AREAS: cuadros/tarjetas clickeables (una por area) que muestran su
+# descripcion al hacer click, en vez de un bloque de texto larguisimo.
+# ---------------------------------------------------------------------------
+def build_areas_section():
+    from bs4 import BeautifulSoup
+
+    html = PAGES["areas"]["content"]
+    soup = BeautifulSoup(html, "html.parser")
+
+    intro_parts = []
+    sections = []  # [(nombre, html_contenido)]
+    current_name = None
+    current_parts = []
+    for node in soup.children:
+        tag = getattr(node, "name", None)
+        if tag == "h4":
+            if current_name:
+                sections.append((current_name, "".join(current_parts)))
+            current_name = node.get_text(strip=True)
+            current_parts = []
+        elif tag in ("p", "ul"):
+            if current_name is None:
+                intro_parts.append(str(node))
+            else:
+                current_parts.append(str(node))
+    if current_name:
+        sections.append((current_name, "".join(current_parts)))
+
+    nav_btns = []
+    panels = []
+    for i, (name, content) in enumerate(sections):
+        tab_id = f"area-{i}"
+        active = " active" if i == 0 else ""
+        monogram = "".join(w[0] for w in name.split()[:2]).upper()
+        nav_btns.append(
+            f'<button class="{active.strip()}" data-tab="{tab_id}">'
+            f'<span class="card-icon">{escape(monogram)}</span>'
+            f'<span class="card-title">{escape(name)}</span>'
+            f"</button>"
+        )
+        panels.append(
+            f'<div class="tab-panel card-detail{active}" id="{tab_id}">'
+            f"<h3>{escape(name)}</h3>{content}</div>"
+        )
+
+    intro_html = "".join(intro_parts)
+    # arregla un artefacto del markup original de WP ("LaLas líneas..." -> "Las líneas...")
+    intro_html = re.sub(r"^(<p>)LaLas\b", r"\1Las", intro_html)
+    return f"""<div class="area-intro">{intro_html}</div>
+<div class="tabs-wrap">
+  <div class="tabs-nav card-tabs-nav">{"".join(nav_btns)}</div>
+  <div class="tab-panels">{"".join(panels)}</div>
+</div>"""
+
+
+# ---------------------------------------------------------------------------
+# PROYECTOS: cuadros con preview de imagen, al hacer click muestra la
+# descripcion completa del proyecto.
+# ---------------------------------------------------------------------------
+def build_proyectos_section():
+    from bs4 import BeautifulSoup
+
+    html = PAGES["proyectos"]["content"]
+    soup = BeautifulSoup(html, "html.parser")
+
+    projects = []
+    pending_img = None
+    current = None
+    for node in soup.children:
+        tag = getattr(node, "name", None)
+        if tag == "ul":
+            img_tag = node.find("img")
+            if img_tag and img_tag.get("src"):
+                pending_img = img_tag["src"]
+        elif tag == "h2":
+            if current:
+                projects.append(current)
+            a = node.find("a")
+            title = a.get_text(strip=True) if a else node.get_text(strip=True)
+            current = {"title": title or "Proyecto", "img": pending_img, "desc": ""}
+            pending_img = None
+        elif tag == "p" and current is not None:
+            current["desc"] += str(node)
+    if current:
+        projects.append(current)
+
+    nav_btns = []
+    panels = []
+    for i, proj in enumerate(projects):
+        tab_id = f"proy-{i}"
+        active = " active" if i == 0 else ""
+        if proj["img"]:
+            thumb_html = f'<div class="card-thumb"><img src="{proj["img"]}" alt=""></div>'
+        else:
+            thumb_html = '<div class="card-thumb placeholder"></div>'
+        nav_btns.append(
+            f'<button class="{active.strip()}" data-tab="{tab_id}">'
+            f"{thumb_html}"
+            f'<span class="card-title">{escape(proj["title"])}</span>'
+            f"</button>"
+        )
+        desc = proj["desc"] or "<p>Descripción no disponible.</p>"
+        panels.append(
+            f'<div class="tab-panel card-detail{active}" id="{tab_id}">'
+            f"<h3>{escape(proj['title'])}</h3>{desc}</div>"
+        )
+
+    return f"""<div class="tabs-wrap">
+  <div class="tabs-nav card-tabs-nav has-thumb">{"".join(nav_btns)}</div>
+  <div class="tab-panels">{"".join(panels)}</div>
+</div>"""
+
+
+# ---------------------------------------------------------------------------
 # INVESTIGACION (Areas / Proyectos / Publicaciones en pestañas)
 # ---------------------------------------------------------------------------
 def build_investigacion():
-    areas = strip_outer(PAGES["areas"]["content"])
-    proyectos = strip_outer(PAGES["proyectos"]["content"])
+    areas_html = build_areas_section()
+    proyectos_html = build_proyectos_section()
     publicaciones_tabs = build_publicaciones_tabs()
 
     tabs = [
-        ("areas", "Áreas", f'<div class="content-block">{areas}</div>'),
-        ("proyectos", "Proyectos", f'<div class="content-block">{proyectos}</div>'),
+        ("areas", "Áreas", areas_html),
+        ("proyectos", "Proyectos", proyectos_html),
         ("publicaciones", "Publicaciones", publicaciones_tabs),
     ]
 
