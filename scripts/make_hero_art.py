@@ -256,7 +256,7 @@ pts_svg = []
 for i, v in enumerate(verts):
     x, y = to_svg_xy(proj[i])
     depth_t = (v[2] + 1.6) / 3.2
-    r = 1.6 + depth_t * 1.6
+    r = 0.7 + depth_t * 0.7  # chiquitos: que se lea como nube de puntos, no como bolitas
     col = to_hex(lerp(AZUL_D, LILA, depth_t))
     pts_svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{col}"/>')
 layer_pts = "\n    ".join(pts_svg)
@@ -283,11 +283,15 @@ for fc, depth, diffuse, spec, rim in fdata:
 layer_shaded = "\n    ".join(poly_mono)
 
 # ---- Capa de material: metal/espejo con brillos especulares duros ----
+# Sin trazo de contorno -- una superficie con material no deberia mostrar
+# los poligonos de la malla, tiene que leerse como una pieza continua.
+# El stroke va del mismo color que el relleno (no transparente) solo para
+# tapar las costuras de antialiasing entre triangulos vecinos.
 poly_mat = []
 for fc, depth, diffuse, spec, rim in fdata:
     pts = " ".join(f"{to_svg_xy(proj[i])[0]:.1f},{to_svg_xy(proj[i])[1]:.1f}" for i in fc)
     col = to_hex(shade_metal(diffuse, spec, rim))
-    poly_mat.append(f'<polygon points="{pts}" fill="{col}" stroke="rgba(20,28,33,.4)" stroke-width=".3"/>')
+    poly_mat.append(f'<polygon points="{pts}" fill="{col}" stroke="{col}" stroke-width=".6"/>')
 layer_mat = "\n    ".join(poly_mat)
 
 # ---------------------------------------------------------------------------
