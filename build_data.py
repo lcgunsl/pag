@@ -19,8 +19,14 @@ PAGES = {
     "contact-us": 2363,
 }
 
-POSTS = [2825, 2946, 2792, 2832, 2930, 2722, 2720, 2788, 186, 2674,
-         2801, 2805, 2815, 2894, 2955, 2808, 2861, 2965]
+# IDs de posts en la categoria "Noticias" (55) del sitio original.
+# 2722/2720 (Alfa T-GAME, Alfa T-GAME L3) y 2648 (Alfa GAVIOTA) son
+# categoria 58 (Investigacion/Proyectos), no noticias.
+# 2930 ("Jornadas de puertas abiertas UNSL") esta sin categorizar (cat 1)
+# y es un duplicado de 2820 ("Jornadas de puertas abiertas", cat Noticias).
+POSTS = [2825, 2946, 2792, 2832, 2788, 186, 2674,
+         2801, 2805, 2815, 2894, 2955, 2808, 2861, 2965,
+         2820, 2798, 2664]
 
 data = {"pages": {}, "posts": []}
 
